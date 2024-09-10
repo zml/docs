@@ -39,10 +39,9 @@ jobs:
           version: 0.13.0
 
       # Prepare SSH auth
-      - name: prepare ssh auth
-        run: |
-          ssh-keyscan -t ed25519 github.com > ~/.ssh/known_hosts
-          ssh-add - <<< "${{ secrets.DEPLOY_KEY }}"
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+            ssh-private-key: ${{ secrets.DEPLOY_KEY }}
 
       # Run your scripts to build the static website with Zine
       - name: Run build scripts
