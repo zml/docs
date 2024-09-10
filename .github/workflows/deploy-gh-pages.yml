@@ -66,6 +66,7 @@ jobs:
       # Commit and push changes to the docs branch
       - name: Commit and push changes
         run: |
+          cd gh-pages
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
           git add .
