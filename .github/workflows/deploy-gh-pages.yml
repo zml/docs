@@ -48,7 +48,6 @@ jobs:
         run: |
           ./01-PREPARE-FOR-EDITS.sh
           echo "going to sleep for 999999 units of time"
-          eval "$(ssh-agent -s)"
           ./02-BUILD.sh
 
       # Checkout the docs branch
