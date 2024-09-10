@@ -22,14 +22,14 @@ jobs:
       - name: Check GITHUB_TOKEN Permissions
         run: |
           echo "Testing GitHub Token Access"
-          git ls-remote https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/zml/zml.git
+          git ls-remote https://x-access-token:${{ secrets.ORG_PAT }}@github.com/zml/zml.git
 
       # Step 2: Checkout the ZML repository into a separate folder
       - name: Checkout ZML repository
         uses: actions/checkout@v3
         with:
           repository: zml/zml
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.ORG_PAT }}
           path: zml
           ref: master
 
