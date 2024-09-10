@@ -56,11 +56,6 @@ Changes not staged for commit:
   (use "git restore <file>..." to discard changes in working directory)
         modified:   content/misc/index.smd
 
-Untracked files:
-  (use "git add <file>..." to include in what will be committed)
-        03-PREPARE-FOR-COMMIT.sh
-        split.py
-
 no changes added to commit (use "git add" and/or "git commit -a")
 
 
