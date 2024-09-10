@@ -42,7 +42,6 @@ jobs:
       - name: Run build scripts
         run: |
           ./01-PREPARE-FOR-EDITS.sh
-          echo "going to sleep for 999999 units of time"
           eval "$(ssh-agent -s)"
           ssh-keyscan -t ed25519 github.com > ~/.ssh/known_hosts
           ssh-add - <<< "${{ secrets.DEPLOY_KEY }}"
@@ -66,10 +65,13 @@ jobs:
       - name: Commit and push changes
         run: |
           cd gh-pages
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
+          # git config --global user.name 'github-actions'
+          # git config --global user.email 'github-actions@github.com'
           git add .
+          eval "$(ssh-agent -s)"
+          ssh-keyscan -t ed25519 github.com > ~/.ssh/known_hosts
+          ssh-add - <<< "${{ secrets.DEPLOY_KEY }}"
           git commit -m "Update GitHub Pages"
-          # git push origin docs
+          git push origin docs
           # try the x-access url
-          git push https://x-access-token:${{ secrets.ORG_PAT }}@github.com/zml/zml.git docs
+          # git push https://x-access-token:${{ secrets.ORG_PAT }}@github.com/zml/zml.git docs
