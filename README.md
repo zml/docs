@@ -14,7 +14,7 @@
 ./02-BUILD.sh serve
 ```
 
-Now, you can edit all `.smd` files, as well as `.shtml` layouts, assets in WORKSPACE.
+Now, you can edit all `.smd` files, as well as `.shtml` layouts, assets in `./WORKSPACE`, while live-viewing on `https://localhost:1990`.
 
 ### ^^^ YOU EDIT IN ./WORKSPACE !!!
 
@@ -34,8 +34,52 @@ So you need to commit both repos:
 - `git commit` : this repo: `.smd`, assets, layouts
 - `git commit -C zml` : `.md` Markdown content
 
+To help you with that, `./03-PREPARE-FOR-COMMIT.sh` will run a `git status` in
+both repos at the end.
 
-**NOTE:** 
+```
+./03-PREPARE-FOR-COMMIT.sh
+WORKSPACE/content/misc/zml_api.smd -> ./content/misc/zml_api.smd + zml/docs/content/misc/zml_api.md
+...
+WORKSPACE/content/index.smd -> ./content/index.smd + zml/docs/content/index.md
+
+
+
+======================================================================
+Changes in this repo:
+======================================================================
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   content/misc/index.smd
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        03-PREPARE-FOR-COMMIT.sh
+        split.py
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+
+
+======================================================================
+Changes in zml repo:
+======================================================================
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   docs/content/misc/index.md
+
+no changes added to commit (use "git add" and/or "git commit -a")
+```
+
+## NOTE:
 
 - the .smd files are the authoritative source of existence, 
       meaning: if there is no .smd file in `./contents/`, its associated
