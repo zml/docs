@@ -43,14 +43,8 @@ jobs:
         with:
           version: 0.13.0
 
-      # # Step 4: Install Bazelisk (Bazel) locally
-      # - name: Install Bazelisk
-      #   run: |
-      #     mkdir -p $HOME/bin
-      #     curl -L -o $HOME/bin/bazel 'https://github.com/bazelbuild/bazelisk/releases/download/v1.18.0/bazelisk-linux-amd64'
-      #     chmod +x $HOME/bin/bazel
-      #   env:
-      #     PATH: $HOME/bin:$PATH  # Add the local bin directory to the PATH
+      - name: unfck ssh auth
+        run: ssh-keyscan github.com >> ~/.ssh/known_hosts
 
       # Step 5: Run your scripts to build the static website with Zine
       - name: Run build scripts
