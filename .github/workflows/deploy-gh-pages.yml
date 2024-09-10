@@ -44,14 +44,14 @@ jobs:
           version: 0.13.0
 
       - name: prepare ssh auth
-        run: ssh-keyscan -t rsa,dsa,ecdsa,ed25519 github.com > ~/.ssh/known_hosts
+        run: ssh-keyscan -t ed25519 github.com > ~/.ssh/known_hosts
 
       # Step 5: Run your scripts to build the static website with Zine
       - name: Run build scripts
         run: |
           ./01-PREPARE-FOR-EDITS.sh
           echo "going to sleep for 999999 units of time"
-          sleep 999999
+          eval "$(ssh-agent -s)"
           ./02-BUILD.sh
 
       # Step 6: Checkout the docs branch
