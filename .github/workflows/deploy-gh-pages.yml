@@ -38,6 +38,11 @@ jobs:
         with:
           python-version: '3.12'
 
+      # setup zig
+      - uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.13.0
+
       # # Step 4: Install Bazelisk (Bazel) locally
       # - name: Install Bazelisk
       #   run: |
