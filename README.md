@@ -9,7 +9,7 @@
 ## HOWTO:
 
 ```console
-./00-CLONE-ZIG.sh
+./00-CLONE-ZML.sh
 ./01-PREPARE-FOR-EDITS.sh
 ./02-BUILD.sh serve
 ```
