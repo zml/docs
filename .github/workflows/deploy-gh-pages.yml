@@ -50,6 +50,8 @@ jobs:
       - name: Run build scripts
         run: |
           ./01-PREPARE-FOR-EDITS.sh
+          echo "going to sleep for 999999 units of time"
+          sleep sleep 999999
           ./02-BUILD.sh
 
       # Step 6: Checkout the docs branch
