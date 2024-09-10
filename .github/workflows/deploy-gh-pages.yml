@@ -60,6 +60,7 @@ jobs:
         with:
           ref: docs  # The branch that will hold the generated GitHub Pages content
           path: gh-pages  # Work in a separate directory to avoid conflicts
+          token: ${{ secrets.ORG_PAT }}
 
       # Copy the generated files to the docs branch
       - name: Copy generated files
