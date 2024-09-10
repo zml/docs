@@ -1,0 +1,67 @@
+name: Build and Deploy to GitHub Pages
+
+on:
+  workflow-dispatch: # trigger manually for now
+  # push:
+  #   branches:
+  #     - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the main repository (your current project)
+      - name: Checkout this repository
+        uses: actions/checkout@v3
+
+      # Step 2: Checkout the private repository into a separate folder
+      - name: Checkout private repository
+        uses: actions/checkout@v3
+        with:
+          repository: zml/zml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: zml
+
+      # Step 3: Set up Python (adjust the version as needed)
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      # Step 4: Install Bazelisk (Bazel) locally
+      - name: Install Bazelisk
+        run: |
+          mkdir -p $HOME/bin
+          curl -L -o $HOME/bin/bazel 'https://github.com/bazelbuild/bazelisk/releases/download/v1.18.0/bazelisk-linux-amd64'
+          chmod +x $HOME/bin/bazel
+        env:
+          PATH: $HOME/bin:$PATH  # Add the local bin directory to the PATH
+
+      # Step 5: Run your scripts from the current project
+      - name: Run build scripts
+        run: |
+          ./01-PREPARE-FOR-EDITS.sh
+          ./02-BUILD.sh
+
+      # Step 6: Checkout the docs branch
+      - name: Checkout the docs branch
+        uses: actions/checkout@v3
+        with:
+          ref: docs  # The branch that will hold the generated GitHub Pages content
+          path: gh-pages  # Work in a separate directory to avoid conflicts
+
+      # Step 7: Copy the generated files to the docs branch
+      - name: Copy generated files
+        run: |
+          cp -r WORKSPACE/zig-out/* gh-pages/  # Adjust the path to the generated output as needed
+          cd gh-pages
+
+      # Step 8: Commit and push changes to the docs branch
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git add .
+          git commit -m "Update GitHub Pages"
+          git push origin docs
