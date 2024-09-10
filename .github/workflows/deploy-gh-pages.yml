@@ -61,7 +61,6 @@ jobs:
       - name: Copy generated files
         run: |
           cp -r WORKSPACE/zig-out/* gh-pages/
-          cd gh-pages
 
       # Commit and push changes to the docs branch
       - name: Commit and push changes
@@ -72,3 +71,5 @@ jobs:
           git add .
           git commit -m "Update GitHub Pages"
           git push origin docs
+        with:
+          token: ${{ secrets.ORG_PAT }}
