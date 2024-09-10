@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+  <head id="head">
+    <meta charset="UTF-8">
+    <!-- <meta name="description" content="Zine: Fast, Scalable and Flexible Static Site Generator"> -->
+    <!-- <meta name="twitter:card" content="summary"> -->
+    <!-- <meta name="twitter:site" content="@croloris"> -->
+    <!-- <meta name="twitter:author" content="@croloris"> -->
+    <!-- <meta name="twitter:description" content="Zine: Fast, Scalable and Flexible Static Site Generator"> -->
+    <!-- <meta name="twitter:title" content="$page.title.suffix(' | Zine')"> -->
+    <meta property="og:title" content="$page.title">
+    <meta property="og:type" content="website">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title id="title">
+      <super>
+      - ZML
+    </title>
+    <link rel="stylesheet" type="text/css" href="$site.asset('fonts.css').link()">
+    <link rel="stylesheet" type="text/css" href="$site.asset('fira_code.css').link()">
+    <link rel="stylesheet" type="text/css" href="$site.asset('style.css').link()">
+    <link rel="stylesheet" type="text/css" href="$site.asset('highlight.css').link()">
+    <link rel="icon" href="/zml.no_light.svg">
+    <super>
+  </head>
+  <body>
+    <a id="logo" href="/"></a>
+    <nav id="menu">
+      <a href="/">Home</a>
+      •
+      <a href="$site.page('tutorials/getting_started').link()">Quickstart</a>
+      •
+      <a href="$site.page('tutorials/write_first_model').link()">First Steps</a>
+      <!-- • -->
+      <!-- <a href="$site.page('concepts').link()">Concepts</a> -->
+      <!-- • -->
+      <!-- <a href="$site.page('using_zml_in_own_projects').link()">Using it in projects</a> -->
+      •
+      <a href="$site.page('misc/zml_api').link()" target="_blank">API Docs</a>
+      •
+      <a href="https://github.com/zml/zml" target="_blank">Code</a>
+      •
+      <a href="https://discord.gg/6y72SN2E7H" target="_blank">Discord</a>
+    </nav>
+    <!-- <hr style="width:min(600px, 100vw); border-color:#0798b3; color: white; border-top:1px;"> -->
+    <aside id="sidebar" class="sidebar">
+        <!-- <h3>Docs</h3> -->
+        <a href="$site.page('tutorials').link()"><h5>Tutorials</h5></a>
+        <div class="linkbox" :loop="$site.page('tutorials').subpages()">
+            <div><a href="$loop.it.link()" :text="$loop.it.title"></a></div>
+        </div>
+        <a href="$site.page('howtos').link()"><h5>How-Tos</h5></a>
+        <div class="linkbox" :loop="$site.page('howtos').subpages()">
+            <div><a href="$loop.it.link()" :text="$loop.it.title"></a></div>
+        </div>
+        <a href="$site.page('tutorials').link()"><h5>Learn more</h5></a>
+        <div class="linkbox" :loop="$site.page('learn').subpages()">
+            <div><a href="$loop.it.link()" :text="$loop.it.title"></a></div>
+        </div>
+        <a href="$site.page('tutorials').link()"><h5>Misc</h5></a>
+        <div class="linkbox" :loop="$site.page('misc').subpages()">
+            <div><a href="$loop.it.link()" :text="$loop.it.title"></a></div>
+        </div>
+    </aside>
+
+    <main>
+        <div id="content"><super></div>
+    </main>
+
+
+    <footer>
+        <!-- OPTION 1: with Zine -->
+        <b>&copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> </b> — <i>made with <a href="https://zine-ssg.io" target="_blank">Zine</a></i>
+
+        <!-- OPTION 2: ZML only -->
+        <!-- &copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> -->
+    </footer>
+  </body>
+</html>

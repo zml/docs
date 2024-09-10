@@ -1,0 +1,92 @@
+<extend template="base.shtml">
+<title id="title" :text="$page.title"></title>
+<head id="head">
+  <style>
+  	#logo {
+  		background-image: none;
+  		background-color: #19134d;
+  	}
+    h2,
+		h3 {
+			text-align: left;
+		}
+
+		h2 {
+			font-size: 1.7rem;
+			border-bottom: 1px dashed #aaa;
+			margin-top: 2em;
+		}
+
+		h3 {
+			font-size: 1.5rem;
+		}
+
+		h4 {
+			font-size: 1rem;
+		}
+
+		.title,
+		.subtitle {
+			margin-bottom: 0;
+		}
+
+		.subtitle,
+		.tagline {
+			margin-top: 0;
+		}
+
+		.title {
+			font-size: 3rem;
+		}
+
+		.subtitle {
+			font-size: 2rem;
+		}
+
+		.tagline {
+			font-size: 1rem;
+			font-style: italic;
+			border-top: 1px solid #ccc;
+			border-bottom: 1px solid #ccc;
+			padding: 2px 5px;
+			text-align: center;
+		}
+
+		.get-started {
+			font-family: 'Bebas Neue', sans-serif;
+			font-weight: normal;
+			font-size: 2rem;
+			text-align: center;
+			margin: 1em;
+		}
+
+		.get-started a {
+			color: black;
+			font-weight: normal;
+			background-color: #ccc;
+			border: 1px solid #ccc;
+			padding: 3px 10px;
+			text-decoration: none;
+		}
+
+		.get-started a:hover {
+			background-color: white;
+		}
+
+        .imgcontainer {
+            text-align: center;
+        }
+        img {
+            margin-top: 2em;
+            width: 33%;
+        }
+
+  </style>
+</head>
+<div id="content">
+    <div class="imgcontainer">
+        <img src="/zml.no_light.svg">
+    </div>
+    <div id="page" :html="$page.content()"></div>
+</div>
+

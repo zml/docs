@@ -1,0 +1,6 @@
+---
+.title = "Simplifying Dimension Handling with Tagged Tensors",
+.layout = "documentation.shtml",
+.author = "gwenzek",
+.date = @date("2024-08-25"),
+---
