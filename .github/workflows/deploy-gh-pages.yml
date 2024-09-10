@@ -10,7 +10,8 @@ on:
 jobs:
   build:
     # runs-on: ubuntu-latest
-    runs-on: ["runs-on","runner=2cpu-linux-x64"]
+    # runs-on: ["runs-on","runner=2cpu-linux-x64"]
+    runs-on: ["runs-on","runner=ubuntu24-amd64"]
 
     steps:
       # Step 1: Checkout the main repository (your current project)
@@ -39,14 +40,14 @@ jobs:
         with:
           python-version: '3.12'
 
-      # Step 4: Install Bazelisk (Bazel) locally
-      - name: Install Bazelisk
-        run: |
-          mkdir -p $HOME/bin
-          curl -L -o $HOME/bin/bazel 'https://github.com/bazelbuild/bazelisk/releases/download/v1.18.0/bazelisk-linux-amd64'
-          chmod +x $HOME/bin/bazel
-        env:
-          PATH: $HOME/bin:$PATH  # Add the local bin directory to the PATH
+      # # Step 4: Install Bazelisk (Bazel) locally
+      # - name: Install Bazelisk
+      #   run: |
+      #     mkdir -p $HOME/bin
+      #     curl -L -o $HOME/bin/bazel 'https://github.com/bazelbuild/bazelisk/releases/download/v1.18.0/bazelisk-linux-amd64'
+      #     chmod +x $HOME/bin/bazel
+      #   env:
+      #     PATH: $HOME/bin:$PATH  # Add the local bin directory to the PATH
 
       # Step 5: Run your scripts to build the static website with Zine
       - name: Run build scripts

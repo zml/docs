@@ -1,0 +1,8 @@
+images:
+  ubuntu24-amd64:
+    platform: "linux"
+    arch: "amd64"
+    ami: "ami-04a92520784b93e73"
+    preinstall: |
+      curl -L -o /usr/local/bin/bazel 'https://github.com/bazelbuild/bazelisk/releases/download/v1.18.0/bazelisk-linux-amd64'
+      chmod +x /usr/local/bin/bazel
