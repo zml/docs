@@ -43,8 +43,8 @@ jobs:
         with:
           version: 0.13.0
 
-      - name: unfck ssh auth
-        run: ssh-keyscan github.com >> ~/.ssh/known_hosts
+      - name: prepare ssh auth
+        run: ssh-keyscan -t rsa,dsa,ecdsa,ed25519 github.com > ~/.ssh/known_hosts
 
       # Step 5: Run your scripts to build the static website with Zine
       - name: Run build scripts
