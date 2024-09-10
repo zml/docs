@@ -12,18 +12,13 @@ jobs:
     runs-on: ["runs-on","runner=2cpu-linux-x64","image=ubuntu24-amd64"]
 
     steps:
-      # Step 1: Checkout the main repository (your current project)
+      # Checkout the main repository (your current project)
       - name: Checkout this repository
         uses: actions/checkout@v3
         with:
           ref: master
 
-      # - name: Check GITHUB_TOKEN Permissions
-      #   run: |
-      #     echo "Testing GitHub Token Access"
-      #     git ls-remote https://x-access-token:${{ secrets.ORG_PAT }}@github.com/zml/zml.git
-
-      # Step 2: Checkout the ZML repository into a separate folder
+      # Checkout the ZML repository into a separate folder
       - name: Checkout ZML repository
         uses: actions/checkout@v3
         with:
@@ -32,21 +27,22 @@ jobs:
           path: zml
           ref: master
 
-      # Step 3: Set up Python
+      # Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
 
-      # setup zig
+      # Set up Zig
       - uses: goto-bus-stop/setup-zig@v2
         with:
           version: 0.13.0
 
+      # Prepare SSH auth
       - name: prepare ssh auth
         run: ssh-keyscan -t ed25519 github.com > ~/.ssh/known_hosts
 
-      # Step 5: Run your scripts to build the static website with Zine
+      # Run your scripts to build the static website with Zine
       - name: Run build scripts
         run: |
           ./01-PREPARE-FOR-EDITS.sh
@@ -54,20 +50,20 @@ jobs:
           eval "$(ssh-agent -s)"
           ./02-BUILD.sh
 
-      # Step 6: Checkout the docs branch
+      # Checkout the docs branch
       - name: Checkout the docs branch
         uses: actions/checkout@v3
         with:
           ref: docs  # The branch that will hold the generated GitHub Pages content
           path: gh-pages  # Work in a separate directory to avoid conflicts
 
-      # Step 7: Copy the generated files to the docs branch
+      # Copy the generated files to the docs branch
       - name: Copy generated files
         run: |
           cp -r WORKSPACE/zig-out/* gh-pages/
           cd gh-pages
 
-      # Step 8: Commit and push changes to the docs branch
+      # Commit and push changes to the docs branch
       - name: Commit and push changes
         run: |
           git config --global user.name 'github-actions'
