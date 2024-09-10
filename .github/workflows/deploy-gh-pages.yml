@@ -12,7 +12,7 @@ jobs:
     runs-on: ["runs-on","runner=2cpu-linux-x64","image=ubuntu24-amd64"]
 
     steps:
-      # Checkout the main repository (your current project)
+      # Checkout the main repository
       - name: Checkout this repository
         uses: actions/checkout@v3
         with:
@@ -38,13 +38,7 @@ jobs:
         with:
           version: 0.13.0
 
-      # Prepare SSH auth
-      # - name: prepare ssh auth
-      #   run: |
-      #     ssh-keyscan -t ed25519 github.com > ~/.ssh/known_hosts
-      #     ssh-add - <<< "${{ secrets.DEPLOY_KEY }}"
-
-      # Run your scripts to build the static website with Zine
+      # Run scripts to build the static website with Zine
       - name: Run build scripts
         run: |
           ./01-PREPARE-FOR-EDITS.sh
@@ -60,6 +54,7 @@ jobs:
         with:
           ref: docs  # The branch that will hold the generated GitHub Pages content
           path: gh-pages  # Work in a separate directory to avoid conflicts
+          # probably don't need the token - but the branch must exist
           token: ${{ secrets.ORG_PAT }}
 
       # Copy the generated files to the docs branch
