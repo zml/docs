@@ -9,9 +9,7 @@ on:
 
 jobs:
   build:
-    # runs-on: ubuntu-latest
-    # runs-on: ["runs-on","runner=2cpu-linux-x64"]
-    runs-on: ["runs-on","runner=ubuntu24-amd64"]
+    runs-on: ["runs-on","runner=2cpu-linux-x64","image=ubuntu24-amd64"]
 
     steps:
       # Step 1: Checkout the main repository (your current project)
