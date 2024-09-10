@@ -24,10 +24,10 @@ When you're done editing, run:
 ./03-PREPARE-FOR-COMMIT.sh
 ```
 
-The above will split the YAML header and content from `.smd` files:
+The above will split the YAML header and content from `WORKSPACE/content/.../*.smd` files:
 
-- YAML will go into `.smd` files in this repo, in `content/.../`
-- Markdown content will go into `.md` files in the zml repo in `zml/docs/content/.../`
+- YAML will go into `.smd` files in this repo, in `content/.../*.smd`
+- Markdown content will go into `.md` files in the zml repo in `zml/docs/content/.../*.md`
 
 So you need to commit both repos:
 
