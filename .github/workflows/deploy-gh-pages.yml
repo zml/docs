@@ -16,6 +16,8 @@ jobs:
       # Step 1: Checkout the main repository (your current project)
       - name: Checkout this repository
         uses: actions/checkout@v3
+        with:
+          ref: master
 
       # Step 2: Checkout the private repository into a separate folder
       - name: Checkout private repository
@@ -24,6 +26,7 @@ jobs:
           repository: zml/zml
           token: ${{ secrets.GITHUB_TOKEN }}
           path: zml
+          ref: master
 
       # Step 3: Set up Python (adjust the version as needed)
       - name: Set up Python
