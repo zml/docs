@@ -19,8 +19,8 @@ jobs:
         with:
           ref: master
 
-      # Step 2: Checkout the private repository into a separate folder
-      - name: Checkout private repository
+      # Step 2: Checkout the ZML repository into a separate folder
+      - name: Checkout ZML repository
         uses: actions/checkout@v3
         with:
           repository: zml/zml
@@ -28,7 +28,7 @@ jobs:
           path: zml
           ref: master
 
-      # Step 3: Set up Python (adjust the version as needed)
+      # Step 3: Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -43,7 +43,7 @@ jobs:
         env:
           PATH: $HOME/bin:$PATH  # Add the local bin directory to the PATH
 
-      # Step 5: Run your scripts from the current project
+      # Step 5: Run your scripts to build the static website with Zine
       - name: Run build scripts
         run: |
           ./01-PREPARE-FOR-EDITS.sh
@@ -59,7 +59,7 @@ jobs:
       # Step 7: Copy the generated files to the docs branch
       - name: Copy generated files
         run: |
-          cp -r WORKSPACE/zig-out/* gh-pages/  # Adjust the path to the generated output as needed
+          cp -r WORKSPACE/zig-out/* gh-pages/
           cd gh-pages
 
       # Step 8: Commit and push changes to the docs branch
