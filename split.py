@@ -10,9 +10,6 @@ def main(args):
     smd_in, smd_out, md_out = args
 
     with open(smd_in, 'rt') as f:
-        # f_smd_out = open(smd_out, 'wt')
-        # f_md_out = open(md_out, 'wt')
-
         lines_smd = []
         lines_md = []
         seen_first_sep = False
