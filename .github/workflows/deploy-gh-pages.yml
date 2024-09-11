@@ -69,11 +69,6 @@ jobs:
           git config --global user.email 'bot@zml.ai'
           git add .
           git remote add sshtarget git@github.com:zml/docs
-
-          # eval "$(ssh-agent -s)"
-          # ssh-keyscan -t ed25519 github.com > ~/.ssh/known_hosts
-          # ssh-add - <<< "${{ secrets.DEPLOY_KEY }}"
-
           git commit -m "Update GitHub Pages"
           git push sshtarget docs
 
