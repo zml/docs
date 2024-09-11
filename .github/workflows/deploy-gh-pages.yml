@@ -67,6 +67,7 @@ jobs:
           cd gh-pages
           git config --global user.name 'github-actions'
           git config --global user.email 'bot@zml.ai'
+          date >> README.md
           git add .
           git remote add sshtarget git@github.com:zml/docs
           git commit -m "Update GitHub Pages"
