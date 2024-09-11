@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+  <head id="head">
+    <meta charset="UTF-8">
+    <!-- <meta name="description" content="Zine: Fast, Scalable and Flexible Static Site Generator"> -->
+    <!-- <meta name="twitter:card" content="summary"> -->
+    <!-- <meta name="twitter:site" content="@croloris"> -->
+    <!-- <meta name="twitter:author" content="@croloris"> -->
+    <!-- <meta name="twitter:description" content="Zine: Fast, Scalable and Flexible Static Site Generator"> -->
+    <!-- <meta name="twitter:title" content="$page.title.suffix(' | Zine')"> -->
+    <meta property="og:title" content="Getting Started with ZML">
+    <meta property="og:type" content="website">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title id="title">
+      Getting Started with ZML
+      - ZML
+    </title>
+    <link rel="stylesheet" type="text/css" href="/fonts.css">
+    <link rel="stylesheet" type="text/css" href="/fira_code.css">
+    <link rel="stylesheet" type="text/css" href="/style.css">
+    <link rel="stylesheet" type="text/css" href="/highlight.css">
+    <link rel="icon" href="/zml.no_light.svg">
+    
+  </head>
+  <body>
+    <a id="logo" href="/"></a>
+    <nav id="menu">
+      <a href="/">Home</a>
+      •
+      <a href="/tutorials/getting_started/">Quickstart</a>
+      •
+      <a href="/tutorials/write_first_model/">First Steps</a>
+      <!-- • -->
+      <!-- <a href="$site.page('concepts').link()">Concepts</a> -->
+      <!-- • -->
+      <!-- <a href="$site.page('using_zml_in_own_projects').link()">Using it in projects</a> -->
+      •
+      <a href="/misc/zml_api/" target="_blank">API Docs</a>
+      •
+      <a href="https://github.com/zml/zml" target="_blank">Code</a>
+      •
+      <a href="https://discord.gg/6y72SN2E7H" target="_blank">Discord</a>
+    </nav>
+    <!-- <hr style="width:min(600px, 100vw); border-color:#0798b3; color: white; border-top:1px;"> -->
+    <aside id="sidebar" class="sidebar">
+        <!-- <h3>Docs</h3> -->
+        <a href="/tutorials/"><h5>Tutorials</h5></a>
+        <div class="linkbox">
+            <div><a href="/tutorials/getting_started/">Getting Started with ZML</a></div>
+        
+            <div><a href="/tutorials/write_first_model/">Writing your first model</a></div>
+        
+            <div><a href="/tutorials/working_with_tensors/">Simplifying Dimension Handling with Tagged Tensors</a></div>
+        </div>
+        <a href="/howtos/"><h5>How-Tos</h5></a>
+        <div class="linkbox">
+            <div><a href="/howtos/huggingface_access_token/">Huggingface Token Authentication</a></div>
+        
+            <div><a href="/howtos/using_zml_in_own_projects/">Using ZML in your own projects</a></div>
+        
+            <div><a href="/howtos/deploy_on_server/">Deploying Models on a Server</a></div>
+        
+            <div><a href="/howtos/howto_torch2zml/">How to port Pytorch models to ZML ?</a></div>
+        
+            <div><a href="/howtos/add_weights/">Adding Weights Files</a></div>
+        </div>
+        <a href="/tutorials/"><h5>Learn more</h5></a>
+        <div class="linkbox">
+            <div><a href="/learn/concepts/">ZML Concepts</a></div>
+        </div>
+        <a href="/tutorials/"><h5>Misc</h5></a>
+        <div class="linkbox">
+            <div><a href="/misc/style_guide/">ZML Style Guide</a></div>
+        
+            <div><a href="/misc/zml_api/">API Docs</a></div>
+        
+            <div><a href="/misc/CHANGELOG/">ZML Changelog</a></div>
+        </div>
+    </aside>
+
+    <main>
+        <div id="content">
+  <style>
+    h1 {
+       margin-top: 0;
+     }
+
+		#docs h2, #docs h3 {
+			text-align: left;
+		}
+
+		#docs h3 {
+			font-size: 1.2rem;
+		}
+
+		#docs h3::before {
+      content: "##";
+      font-size: 1rem;
+      padding-right: 4px;
+      margin-bottom: 0;
+    }
+
+    #docs h2 {
+      font-size: 1.5rem;
+      border-bottom: 1px dashed #aaa;
+    }
+
+    #docs h2::before {
+      content: "#";
+      font-size: 1rem;
+      padding-right: 4px;
+    }
+
+    #docs h4 {
+      font-size: 1rem;
+    }
+
+    table {
+      font-size: 0.9em;
+    }
+    table th {
+      font-size: 1em;
+    }
+    table td {
+      white-space: nowrap;
+    }
+  </style>
+  <h3 class="centered"></h3>
+  <h1>Getting Started with ZML</h1>
+  <div id="docs"><p>In this tutorial, we will install <code>ZML</code>, and run a few models locally.</p><h2>Prerequisites</h2><p>First let's checkout the ZML codebase. In a terminal run:</p><pre><code>git clone https://github.com/zml/zml.git
+cd zml/
+</code></pre><p>We use <code>bazel</code> to build ZML and its dependencies. We recommend to download it through <code>bazelisk</code>, a version manager for <code>bazel</code>.</p><p><strong>Install Bazel:</strong></p><details><summary>macOS</summary>
+<pre>
+    brew install bazelisk
+</pre>
+</details>
+
+<details><summary>Linux</summary>
+<pre>
+curl -L -o /usr/local/bin/bazel 'https://github.com/bazelbuild/bazelisk/releases/download/v1.18.0/bazelisk-linux-amd64'
+chmod +x /usr/local/bin/bazel
+</pre>
+</details>
+<h2>Run a pre-packaged model</h2><p>ZML comes with a variety of model examples. See also our reference implementations in the <a href="https://github.com/zml/zml/tree/master/models/" target="_blank">models</a> folder.</p><h3>MNIST</h3><p>The <a href="https://en.wikipedia.org/wiki/MNIST_database" target="_blank">classic</a> handwritten digits recognition task. The model is tasked to recognized a hand written digit, which has been converted to a 28x28 pixel mono-color image. <code>Bazel</code> will download a pretrained model, and the test dataset. The program will load the model, compile it, and classify examples from the test dataset in random order.</p><p>On the command line:</p><pre><code>cd examples
+bazel run -c opt //mnist
+</code></pre><p>Press <code>Ctrl+C</code> to interrupt the program.</p><h3>Llama</h3><p>Llama is a family of "Large Language Models", trained to generate text, based on the beginning of a sentence/book/article. This "beginning" is generally referred as the "prompt".</p><h4>TinyLlama, Stories 15M</h4><p>To start, you can use a small model trained specifically on children's history books. This model has been trained by <a href="https://x.com/karpathy" target="_blank">Andrej Karpathy</a>; you can read more on his <a href="https://github.com/karpathy/llama2.c" target="_blank">Github</a>.</p><pre><code>cd examples
+bazel run -c opt //llama:TinyLlama-Stories-15M
+bazel run -c opt //llama:TinyLlama-Stories-15M -- --prompt=&quot;Once upon a time, there was a cute little dragon&quot;
+</code></pre><h4>OpenLLama 3B</h4><pre><code>cd examples
+bazel run -c opt //llama:OpenLLaMA-3B
+bazel run -c opt //llama:OpenLLaMA-3B -- --prompt=&quot;Once upon a time,&quot;
+</code></pre><h4>Meta Llama 3 8B</h4><p>This models has restrictions, see <a href="https://huggingface.co/meta-llama/Meta-Llama-3-8B" target="_blank">here</a>. It <strong>requires approval from Meta on Huggingface</strong>, which can take a few hours to get granted.</p><p>While waiting for approval, you can already <a href="/howtos/huggingface_access_token/">generate your Huggingface access token</a>.</p><p>Now you're ready to download a gated model like <code>Meta-Llama-3-8b</code> !</p><pre><code># requires token in $HOME/.cache/huggingface/token
+cd examples
+bazel run -c opt //llama:Meta-Llama-3-8b
+bazel run -c opt //llama:Meta-Llama-3-8b -- --promt=&quot;Once upon a time,&quot;
+</code></pre><h2>Run Tests</h2><pre><code>bazel test //zml:test # (full test suite)
+bazel test //zml:core # (pure Zig test suite)
+</code></pre><div id=running-on-accelerator><h2><a class="" href="#running-on-accelerator">Running Models on GPU / TPU</a></h2><p>You can compile models for accelerator runtimes by appending one or more of the following arguments to the command line when compiling / running a model:</p><ul><li>NVIDIA CUDA: <code>--@zml//runtimes:cuda=true</code></li><li>AMD RoCM: <code>--@zml//runtimes:rocm=true</code></li><li>Google TPU: <code>--@zml//runtimes:tpu=true</code></li><li><strong>AVOID CPU:</strong> <code>--@zml//runtimes:cpu=false</code></li></ul><p>The latter, avoiding compilation for CPU, cuts down compilation time.</p><p>So, to run the OpenLLama model from above on your host sporting an NVIDIA GPU, run the following:</p><pre><code>cd examples
+bazel run -c opt //llama:OpenLLaMA-3B        \
+          --@zml//runtimes:cuda=true              \
+          -- --prompt=&quot;Once upon a time,&quot;
+</code></pre><h2>Where to go next:</h2><p>In <a href="/howtos/deploy_on_server/">Deploying Models on a Server</a>, we show how you can cross-compile and package for a specific architecture, then deploy and run your model.</p><p>You might also want to check out more <a href="https://github.com/zml/zml/tree/master/examples" target="_blank">examples</a> or read through the documentation. Try starting with <a href="/tutorials/write_first_model/">Writing your first model</a>, which explains the high-level <a href="/learn/concepts/">ZML concepts</a>, or go straight to <a href="/howtos/using_zml_in_own_projects/">using ZML in your own projects</a>.</p></div></div>
+</div>
+    </main>
+
+
+    <footer>
+        <!-- OPTION 1: with Zine -->
+        <b>&copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> </b> — <i>made with <a href="https://zine-ssg.io" target="_blank">Zine</a></i>
+
+        <!-- OPTION 2: ZML only -->
+        <!-- &copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> -->
+    </footer>
+  </body>
+</html>

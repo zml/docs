@@ -1,0 +1,132 @@
+tokyonight {
+  --color-var: #82aaff;
+  --color-var: #86e1fc;
+  --color-var: #41a6b5;
+  --color-var: #4fd6be;
+  --color-string: #c3e88d;
+  --color-func-call: #f248bb;
+  --color-punct: #82aaff;
+  --color-keyword: #fca7ea;
+  --color-comment: #636da6; /*tokyonight */
+  --color-background: #1e2030; /*tokyonight bg-dark */
+
+  --color-constant: #ff966c;
+  --color-type: #65bcff;
+  --color-attribute: #0db9d7;
+}
+
+:root,
+zml_colors {
+  --color-var: #eefafe;
+  --color-string: #05fffd;
+  --color-func-call: #f248bb;
+  --color-punct: #56b6c2;
+  --color-keyword: #68f;
+  --color-attribute: #b912ee;
+  --color-type: #68f;
+  --color-comment: #c1cb79;
+  --color-constant: #ff8080;
+  --color-background: #19035d;
+}
+
+code {
+  color: var(--color-var);
+}
+
+code.zig,
+code.python {
+  /* Punct is generaly not scoped */
+  color: var(--color-punct );
+}
+
+code .comment {
+  color: var(--color-comment);
+}
+
+code .field,
+code .parameter,
+code .variable {
+  color: var(--color-var);
+}
+
+code .string {
+  color: var(--color-string);
+}
+
+code .float,
+code .number {
+  color: var(--color-constant);
+}
+
+code .bracket {
+  color: var(--color-punct);
+}
+
+code .function {
+  color: var(--color-func-call);
+}
+
+code .keyword,
+code .operator {
+  color: var(--color-keyword);
+}
+
+code .type.qualifier,
+code .attribute,
+code .include {
+  color: var(--color-attribute);
+}
+
+code .type {
+  color: var(--color-type);
+}
+
+code .punctuation {
+  color: var(--color-punct);
+}
+
+code.zig {}
+code.zig .include,
+code.zig .keyword.function {
+  color: var(--color-attribute);
+}
+
+code.html {}
+
+code.html .tag {
+  color: var(--color-func-call);
+}
+
+code.html .constant {
+  color: var(--color-keyword);
+}
+
+code.html .attribute {
+  color: var(--color-var);
+}
+
+code.superhtml {}
+
+code.superhtml .tag {
+  color: var(--color-func-call);
+}
+
+code.superhtml .special {
+  color: var(--color-func-call);
+}
+
+code.superhtml .constant {
+  color: var(--color-keyword);
+}
+
+code.superhtml .attribute {
+  color: var(--color-var);
+}
+
+code.markdown {
+  color: #ccc;
+}
+
+code.markdown .text.title {
+  color: var(--color-keyword);
+}

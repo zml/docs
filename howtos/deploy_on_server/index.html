@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+  <head id="head">
+    <meta charset="UTF-8">
+    <!-- <meta name="description" content="Zine: Fast, Scalable and Flexible Static Site Generator"> -->
+    <!-- <meta name="twitter:card" content="summary"> -->
+    <!-- <meta name="twitter:site" content="@croloris"> -->
+    <!-- <meta name="twitter:author" content="@croloris"> -->
+    <!-- <meta name="twitter:description" content="Zine: Fast, Scalable and Flexible Static Site Generator"> -->
+    <!-- <meta name="twitter:title" content="$page.title.suffix(' | Zine')"> -->
+    <meta property="og:title" content="Deploying Models on a Server">
+    <meta property="og:type" content="website">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title id="title">
+      Deploying Models on a Server
+      - ZML
+    </title>
+    <link rel="stylesheet" type="text/css" href="/fonts.css">
+    <link rel="stylesheet" type="text/css" href="/fira_code.css">
+    <link rel="stylesheet" type="text/css" href="/style.css">
+    <link rel="stylesheet" type="text/css" href="/highlight.css">
+    <link rel="icon" href="/zml.no_light.svg">
+    
+  </head>
+  <body>
+    <a id="logo" href="/"></a>
+    <nav id="menu">
+      <a href="/">Home</a>
+      •
+      <a href="/tutorials/getting_started/">Quickstart</a>
+      •
+      <a href="/tutorials/write_first_model/">First Steps</a>
+      <!-- • -->
+      <!-- <a href="$site.page('concepts').link()">Concepts</a> -->
+      <!-- • -->
+      <!-- <a href="$site.page('using_zml_in_own_projects').link()">Using it in projects</a> -->
+      •
+      <a href="/misc/zml_api/" target="_blank">API Docs</a>
+      •
+      <a href="https://github.com/zml/zml" target="_blank">Code</a>
+      •
+      <a href="https://discord.gg/6y72SN2E7H" target="_blank">Discord</a>
+    </nav>
+    <!-- <hr style="width:min(600px, 100vw); border-color:#0798b3; color: white; border-top:1px;"> -->
+    <aside id="sidebar" class="sidebar">
+        <!-- <h3>Docs</h3> -->
+        <a href="/tutorials/"><h5>Tutorials</h5></a>
+        <div class="linkbox">
+            <div><a href="/tutorials/getting_started/">Getting Started with ZML</a></div>
+        
+            <div><a href="/tutorials/write_first_model/">Writing your first model</a></div>
+        
+            <div><a href="/tutorials/working_with_tensors/">Simplifying Dimension Handling with Tagged Tensors</a></div>
+        </div>
+        <a href="/howtos/"><h5>How-Tos</h5></a>
+        <div class="linkbox">
+            <div><a href="/howtos/huggingface_access_token/">Huggingface Token Authentication</a></div>
+        
+            <div><a href="/howtos/using_zml_in_own_projects/">Using ZML in your own projects</a></div>
+        
+            <div><a href="/howtos/deploy_on_server/">Deploying Models on a Server</a></div>
+        
+            <div><a href="/howtos/howto_torch2zml/">How to port Pytorch models to ZML ?</a></div>
+        
+            <div><a href="/howtos/add_weights/">Adding Weights Files</a></div>
+        </div>
+        <a href="/tutorials/"><h5>Learn more</h5></a>
+        <div class="linkbox">
+            <div><a href="/learn/concepts/">ZML Concepts</a></div>
+        </div>
+        <a href="/tutorials/"><h5>Misc</h5></a>
+        <div class="linkbox">
+            <div><a href="/misc/style_guide/">ZML Style Guide</a></div>
+        
+            <div><a href="/misc/zml_api/">API Docs</a></div>
+        
+            <div><a href="/misc/CHANGELOG/">ZML Changelog</a></div>
+        </div>
+    </aside>
+
+    <main>
+        <div id="content">
+  <style>
+    h1 {
+       margin-top: 0;
+     }
+
+		#docs h2, #docs h3 {
+			text-align: left;
+		}
+
+		#docs h3 {
+			font-size: 1.2rem;
+		}
+
+		#docs h3::before {
+      content: "##";
+      font-size: 1rem;
+      padding-right: 4px;
+      margin-bottom: 0;
+    }
+
+    #docs h2 {
+      font-size: 1.5rem;
+      border-bottom: 1px dashed #aaa;
+    }
+
+    #docs h2::before {
+      content: "#";
+      font-size: 1rem;
+      padding-right: 4px;
+    }
+
+    #docs h4 {
+      font-size: 1rem;
+    }
+
+    table {
+      font-size: 0.9em;
+    }
+    table th {
+      font-size: 1em;
+    }
+    table td {
+      white-space: nowrap;
+    }
+  </style>
+  <h3 class="centered"></h3>
+  <h1>Deploying Models on a Server</h1>
+  <div id="docs"><p>To run models on remote GPU/TPU machines, it is not convenient having to check out the ZML or your project's repository, and compiling it on every target. Instead, you more likely want to cross-compile right from your development machine, <strong>for</strong> every target 😊 architecture and accelerator.</p><p>See <a href="/tutorials/getting_started/">Getting Started with ZML</a> if you need more information on how to compile a model.</p><p>Here's a quick recap:</p><p>You can compile models for accelerator runtimes by appending one or more of the following arguments to the command line when compiling / running a model:</p><ul><li>NVIDIA CUDA: <code>--@zml//runtimes:cuda=true</code></li><li>AMD RoCM: <code>--@zml//runtimes:rocm=true</code></li><li>Google TPU: <code>--@zml//runtimes:tpu=true</code></li><li><strong>AVOID CPU:</strong> <code>--@zml//runtimes:cpu=false</code></li></ul><p>So, to run the OpenLLama model from above <strong>on your development machine</strong> housing an NVIDIA GPU, run the following:</p><pre><code>cd examples
+bazel run -c opt //llama:OpenLLaMA-3B --@zml//runtimes:cuda=true
+</code></pre><h2>Cross-Compiling and creating a TAR for your server</h2><p>Currently, ZML lets you cross-compile to one of the following target host architectures:</p><ul><li>Linux X86_64: <code>--platforms=@zml//platforms:linux_amd64</code></li><li>Linux ARM64: <code>--platforms=@zml//platforms:linux_amd64</code></li><li>MacOS ARM64: <code>--platforms=@zml//platforms:linux_amd64</code></li></ul><p>As an example, here is how you build above OpenLLama for CUDA on Linux X86_64:</p><pre><code>cd examples
+bazel build -c opt //llama:OpenLLaMA-3B      \
+            --@zml//runtimes:cuda=true       \
+            --@zml//runtimes:cpu=false       \
+            --platforms=@zml//platforms:linux_amd64
+</code></pre><h3>Creating the TAR</h3><p>When cross-compiling, it is convenient to produce a compressed TAR file that you can copy to the target host, so you can unpack it there and run the model.</p><p>Let's use MNIST as example.</p><p>If not present already, you just add a target to the model's <code>BUILD.bazel</code> like this:</p><pre><code class="python"><span class="function">load</span>(<span class="string">&quot;@aspect_bazel_lib//lib:tar.bzl&quot;</span>, <span class="string">&quot;mtree_spec&quot;</span>, <span class="string">&quot;tar&quot;</span>)
+
+<span class="function">mtree_spec</span>(
+    <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;mtree&quot;</span>,
+    <span class="variable">srcs</span> <span class="operator">=</span> [<span class="string">&quot;:mnist&quot;</span>],
+)
+
+<span class="function">tar</span>(
+    <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;archive&quot;</span>,
+    <span class="variable">srcs</span> <span class="operator">=</span> [<span class="string">&quot;:mnist&quot;</span>],
+    <span class="variable">args</span> <span class="operator">=</span> [
+        <span class="string">&quot;--options&quot;</span>,
+        <span class="string">&quot;zstd:compression-level=9&quot;</span>,
+    ],
+    <span class="variable">compress</span> <span class="operator">=</span> <span class="string">&quot;zstd&quot;</span>,
+    <span class="variable">mtree</span> <span class="operator">=</span> <span class="string">&quot;:mtree&quot;</span>,
+)
+</code></pre>
+<p>... and then build it:</p><pre><code># cd examples
+bazel build -c opt //mnist:archive                  \
+            --@zml//runtimes:cuda=true              \
+            --@zml//runtimes:cpu=false              \
+            --platforms=@zml//platforms:linux_amd64
+</code></pre><p>Note the <code>//models/mnist:archive</code> notation.</p><p>The resulting tar file will be in <code>bazel-bin/models/mnist/archive.tar.zst</code>.</p><h3>Run it on the server</h3><p>You can copy it onto your Linux X86_64 NVIDIA GPU server, untar and run it:</p><pre><code>scp bazel-bin/examples/mnist/archive.tar.zst destination-server:
+ssh destination-server
+tar xvf archive.tar.zst
+./mnist                                                                       \
+    &apos;mnist_runfiles/_main~weights~com_github_zml_cdn_mnist/file/mnist.pt&apos;     \
+    &apos;mnist_runfiles/_main~weights~com_github_zml_cdn_mnist_data/file/mnist.ylc&apos;
+</code></pre><p>The easiest way to figure out the runtime args is to consult the model's <code>BUILD.bazel</code> and check out its <code>args</code> section. It will reference e.g. weights files that are defined either in the same <code>BUILD.bazel</code> file or in a <code>weights.bzl</code> file.</p><p>You can also consult the console output when running your model locally:</p><pre><code>bazel run //mnist
+INFO: Analyzed target //mnist:mnist (0 packages loaded, 0 targets configured).
+INFO: Found 1 target...
+Target //mnist:mnist up-to-date:
+  bazel-bin/models/mnist/mnist
+INFO: Elapsed time: 0.121s, Critical Path: 0.00s
+INFO: 1 process: 1 internal.
+INFO: Build completed successfully, 1 total action
+INFO: Running command line: bazel-bin/models/mnist/mnist ../_main~weights~com_github_zml_cdn_mnist/file/mnist.pt ../_main~weights~com_github_zml_cdn_mnist_data/file/mnist.ylc
+# ...
+</code></pre><p>You see the command line right up there. You just need to replace <code>../</code> with the 'runfiles' directory of your TAR.</p></div>
+</div>
+    </main>
+
+
+    <footer>
+        <!-- OPTION 1: with Zine -->
+        <b>&copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> </b> — <i>made with <a href="https://zine-ssg.io" target="_blank">Zine</a></i>
+
+        <!-- OPTION 2: ZML only -->
+        <!-- &copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> -->
+    </footer>
+  </body>
+</html>

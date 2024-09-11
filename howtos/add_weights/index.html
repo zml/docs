@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+  <head id="head">
+    <meta charset="UTF-8">
+    <!-- <meta name="description" content="Zine: Fast, Scalable and Flexible Static Site Generator"> -->
+    <!-- <meta name="twitter:card" content="summary"> -->
+    <!-- <meta name="twitter:site" content="@croloris"> -->
+    <!-- <meta name="twitter:author" content="@croloris"> -->
+    <!-- <meta name="twitter:description" content="Zine: Fast, Scalable and Flexible Static Site Generator"> -->
+    <!-- <meta name="twitter:title" content="$page.title.suffix(' | Zine')"> -->
+    <meta property="og:title" content="Adding Weights Files">
+    <meta property="og:type" content="website">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title id="title">
+      Adding Weights Files
+      - ZML
+    </title>
+    <link rel="stylesheet" type="text/css" href="/fonts.css">
+    <link rel="stylesheet" type="text/css" href="/fira_code.css">
+    <link rel="stylesheet" type="text/css" href="/style.css">
+    <link rel="stylesheet" type="text/css" href="/highlight.css">
+    <link rel="icon" href="/zml.no_light.svg">
+    
+  </head>
+  <body>
+    <a id="logo" href="/"></a>
+    <nav id="menu">
+      <a href="/">Home</a>
+      •
+      <a href="/tutorials/getting_started/">Quickstart</a>
+      •
+      <a href="/tutorials/write_first_model/">First Steps</a>
+      <!-- • -->
+      <!-- <a href="$site.page('concepts').link()">Concepts</a> -->
+      <!-- • -->
+      <!-- <a href="$site.page('using_zml_in_own_projects').link()">Using it in projects</a> -->
+      •
+      <a href="/misc/zml_api/" target="_blank">API Docs</a>
+      •
+      <a href="https://github.com/zml/zml" target="_blank">Code</a>
+      •
+      <a href="https://discord.gg/6y72SN2E7H" target="_blank">Discord</a>
+    </nav>
+    <!-- <hr style="width:min(600px, 100vw); border-color:#0798b3; color: white; border-top:1px;"> -->
+    <aside id="sidebar" class="sidebar">
+        <!-- <h3>Docs</h3> -->
+        <a href="/tutorials/"><h5>Tutorials</h5></a>
+        <div class="linkbox">
+            <div><a href="/tutorials/getting_started/">Getting Started with ZML</a></div>
+        
+            <div><a href="/tutorials/write_first_model/">Writing your first model</a></div>
+        
+            <div><a href="/tutorials/working_with_tensors/">Simplifying Dimension Handling with Tagged Tensors</a></div>
+        </div>
+        <a href="/howtos/"><h5>How-Tos</h5></a>
+        <div class="linkbox">
+            <div><a href="/howtos/huggingface_access_token/">Huggingface Token Authentication</a></div>
+        
+            <div><a href="/howtos/using_zml_in_own_projects/">Using ZML in your own projects</a></div>
+        
+            <div><a href="/howtos/deploy_on_server/">Deploying Models on a Server</a></div>
+        
+            <div><a href="/howtos/howto_torch2zml/">How to port Pytorch models to ZML ?</a></div>
+        
+            <div><a href="/howtos/add_weights/">Adding Weights Files</a></div>
+        </div>
+        <a href="/tutorials/"><h5>Learn more</h5></a>
+        <div class="linkbox">
+            <div><a href="/learn/concepts/">ZML Concepts</a></div>
+        </div>
+        <a href="/tutorials/"><h5>Misc</h5></a>
+        <div class="linkbox">
+            <div><a href="/misc/style_guide/">ZML Style Guide</a></div>
+        
+            <div><a href="/misc/zml_api/">API Docs</a></div>
+        
+            <div><a href="/misc/CHANGELOG/">ZML Changelog</a></div>
+        </div>
+    </aside>
+
+    <main>
+        <div id="content">
+  <style>
+    h1 {
+       margin-top: 0;
+     }
+
+		#docs h2, #docs h3 {
+			text-align: left;
+		}
+
+		#docs h3 {
+			font-size: 1.2rem;
+		}
+
+		#docs h3::before {
+      content: "##";
+      font-size: 1rem;
+      padding-right: 4px;
+      margin-bottom: 0;
+    }
+
+    #docs h2 {
+      font-size: 1.5rem;
+      border-bottom: 1px dashed #aaa;
+    }
+
+    #docs h2::before {
+      content: "#";
+      font-size: 1rem;
+      padding-right: 4px;
+    }
+
+    #docs h4 {
+      font-size: 1rem;
+    }
+
+    table {
+      font-size: 0.9em;
+    }
+    table th {
+      font-size: 1em;
+    }
+    table td {
+      white-space: nowrap;
+    }
+  </style>
+  <h3 class="centered"></h3>
+  <h1>Adding Weights Files</h1>
+  <div id="docs"><p>Our <a href="/tutorials/write_first_model/">first model</a> did not need any weights files. We just created weights and bias at runtime..</p><p>But real-world models typically need weights files, and maybe some other supporting files.</p><p>We recommend, for easy deployments, you upload those files. In many instances, you will use a site like <a href="https://huggingface.co" target="_blank">🤗 Hugging Face</a>.</p><p>We also recommend to add a <code>weights.bzl</code> file to your project root directory, so you don't "pollute" your build file with long URLs and SHAs:</p><pre><code class="python"><span class="function">load</span>(<span class="string">&quot;@bazel_tools//tools/build_defs/repo:http.bzl&quot;</span>, <span class="string">&quot;http_file&quot;</span>)
+
+<span class="keyword">def</span> <span class="function">_weights_impl</span>(<span class="variable">mctx</span>):
+    <span class="function">http_file</span>(
+        <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;com_github_zml_cdn_mnist&quot;</span>,
+        <span class="variable">downloaded_file_path</span> <span class="operator">=</span> <span class="string">&quot;mnist.pt&quot;</span>,
+        <span class="variable">sha256</span> <span class="operator">=</span> <span class="string">&quot;d8a25252e28915e147720c19223721f0f53e3317493727ca754a2dd672450ba9&quot;</span>,
+        <span class="variable">url</span> <span class="operator">=</span> <span class="string">&quot;https://github.com/ggerganov/ggml/raw/18703ad600cc68dbdb04d57434c876989a841d12/examples/mnist/models/mnist/mnist_model.state_dict&quot;</span>,
+    )
+
+    <span class="function">http_file</span>(
+        <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;com_github_zml_cdn_mnist_data&quot;</span>,
+        <span class="variable">downloaded_file_path</span> <span class="operator">=</span> <span class="string">&quot;mnist.ylc&quot;</span>,
+        <span class="variable">sha256</span> <span class="operator">=</span> <span class="string">&quot;0fa7898d509279e482958e8ce81c8e77db3f2f8254e26661ceb7762c4d494ce7&quot;</span>,
+        <span class="variable">url</span> <span class="operator">=</span> <span class="string">&quot;https://github.com/ggerganov/ggml/raw/18703ad600cc68dbdb04d57434c876989a841d12/examples/mnist/models/mnist/t10k-images.idx3-ubyte&quot;</span>,
+    )
+
+    <span class="keyword">return</span> <span class="variable">mctx</span>.<span class="function method">extension_metadata</span>(
+        <span class="variable">reproducible</span> <span class="operator">=</span> <span class="constant builtin">True</span>,
+        <span class="variable">root_module_direct_deps</span> <span class="operator">=</span> <span class="string">&quot;all&quot;</span>,
+        <span class="variable">root_module_direct_dev_deps</span> <span class="operator">=</span> [],
+    )
+
+<span class="variable">weights</span> <span class="operator">=</span> <span class="function">module_extension</span>(
+    <span class="variable">implementation</span> <span class="operator">=</span> <span class="variable">_weights_impl</span>,
+)
+</code></pre>
+<p>The above shows how we load files for MNIST:</p><ul><li><code>mnist.pt</code> (model weights)</li><li><code>mnist.ylc</code> (dataset for picking sample images)</li></ul><p>Then, in your <code>BUILD.bazel</code>, you can refer to the files you defined above, in the following way:</p><pre><code class="python"><span class="function">zig_cc_binary</span>(
+    <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;mnist&quot;</span>,
+    <span class="variable">args</span> <span class="operator">=</span> [
+        <span class="string">&quot;$(location @com_github_zml_cdn_mnist//file)&quot;</span>,
+        <span class="string">&quot;$(location @com_github_zml_cdn_mnist_data//file)&quot;</span>,
+    ],
+    <span class="variable">data</span> <span class="operator">=</span> [
+        <span class="string">&quot;@com_github_zml_cdn_mnist//file&quot;</span>,
+        <span class="string">&quot;@com_github_zml_cdn_mnist_data//file&quot;</span>,
+    ],
+    <span class="variable">main</span> <span class="operator">=</span> <span class="string">&quot;mnist.zig&quot;</span>,
+    <span class="variable">deps</span> <span class="operator">=</span> [
+        <span class="string">&quot;//async&quot;</span>,
+        <span class="string">&quot;//zml&quot;</span>,
+    ],
+)
+</code></pre>
+<p>See how:</p><ul><li>we use <code>data = [ ... ]</code> to reference the files in <code>weights.bzl</code></li><li>we use <code>args = [ ... ]</code> to pass the files as command-line arguments to the MNIST executable at runtime, automatically.</li></ul></div>
+</div>
+    </main>
+
+
+    <footer>
+        <!-- OPTION 1: with Zine -->
+        <b>&copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> </b> — <i>made with <a href="https://zine-ssg.io" target="_blank">Zine</a></i>
+
+        <!-- OPTION 2: ZML only -->
+        <!-- &copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> -->
+    </footer>
+  </body>
+</html>

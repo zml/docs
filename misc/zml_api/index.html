@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html>
+  <head id="head">
+    <meta charset="UTF-8">
+    <!-- <meta name="description" content="Zine: Fast, Scalable and Flexible Static Site Generator"> -->
+    <!-- <meta name="twitter:card" content="summary"> -->
+    <!-- <meta name="twitter:site" content="@croloris"> -->
+    <!-- <meta name="twitter:author" content="@croloris"> -->
+    <!-- <meta name="twitter:description" content="Zine: Fast, Scalable and Flexible Static Site Generator"> -->
+    <!-- <meta name="twitter:title" content="$page.title.suffix(' | Zine')"> -->
+    <meta property="og:title" content="API Docs">
+    <meta property="og:type" content="website">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title id="title">
+      Zig Documentation
+      - ZML
+    </title>
+    <link rel="stylesheet" type="text/css" href="/fonts.css">
+    <link rel="stylesheet" type="text/css" href="/fira_code.css">
+    <link rel="stylesheet" type="text/css" href="/style.css">
+    <link rel="stylesheet" type="text/css" href="/highlight.css">
+    <link rel="icon" href="/zml.no_light.svg">
+    
+  <style>
+    .hidden {
+      display: none;
+    }
+    table {
+      width: 100%;
+    }
+    #listFields > div, #listParams > div {
+      margin-bottom: 1em;
+    }
+    #hdrName a {
+      font-size: 0.7em;
+      padding-left: 1em;
+    }
+
+    #navWrap {
+      width: -moz-available;
+      width: -webkit-fill-available;
+      width: stretch;
+      display: grid;
+      grid-template-columns: auto;
+      grid-template-rows: 1fr;
+      grid-template-areas: "search"
+                                "list_nav";
+    }
+
+    #search {
+      width: 100%;
+      background-color: #19035d;
+      color: #eefafe;
+      border-style: none;
+      outline: none;
+      font-size: 1em;
+    }
+
+    section {
+      clear: both;
+      padding-top: 1em;
+    }
+    section h1 {
+      border-bottom: 1px dashed;
+      margin: 0 0;
+    }
+    section h2 {
+      font-size: 1.3em;
+      margin: 0.5em 0;
+      padding: 0;
+      border-bottom: 1px solid;
+    }
+    #listNav {
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #f1f1f1;
+    }
+    #listNav li {
+      float:left;
+    }
+    #listNav li a {
+      display: block;
+      color: #000;
+      text-align: center;
+      padding: .5em .8em;
+      text-decoration: none;
+    }
+    #listNav li a:hover {
+      background-color: #555;
+      color: #fff;
+    }
+    #listNav li a.active {
+      background-color: #FFBB4D;
+      color: #000;
+    }
+
+    #helpDialog {
+      width: 21em;
+      height: 21em;
+      position: fixed;
+      top: 0;
+      left: 0;
+      background-color: #333;
+      color: #fff;
+      border: 1px solid #fff;
+    }
+    #helpDialog h1 {
+      text-align: center;
+      font-size: 1.5em;
+    }
+    #helpDialog dt, #helpDialog dd {
+      display: inline;
+      margin: 0 0.2em;
+    }
+    kbd {
+      color: #000;
+      background-color: #fafbfc;
+      border-color: #d1d5da;
+      border-bottom-color: #c6cbd1;
+      box-shadow-color: #c6cbd1;
+      display: inline-block;
+      padding: 0.3em 0.2em;
+      font: 1.2em monospace;
+      line-height: 0.8em;
+      vertical-align: middle;
+      border: solid 1px;
+      border-radius: 3px;
+      box-shadow: inset 0 -1px 0;
+      cursor: default;
+    }
+
+    #listSearchResults li.selected {
+      background-color: #93e196;
+    }
+
+    #tableFnErrors dt {
+      font-weight: bold;
+    }
+
+    td, th {
+      text-align: unset;
+      vertical-align: top;
+      margin: 0;
+      padding: 0.5em;
+      max-width: 20em;
+      text-overflow: ellipsis;
+      overflow-x: hidden;
+    }
+
+    ul.columns {
+      column-width: 20em;
+    }
+
+    code {
+      /* Zine and Zig autodoc use two different code parsers.
+      Autodoc parser is less precise and most of tokens don't have a scope.
+      Let's use `--color-var`.
+      */
+      color: var(--color-var) !important;
+      background-color: var(--color-background);
+    }
+
+    /* Functions */
+    #sectFns dt {
+      margin-top: 0.5em;
+      padding: 0.5em;
+      background-color: var(--color-background);
+    }
+    #sectFns dd {
+      margin: 0px;
+      padding: 0.5em;
+      border: 1px solid var(--color-background);
+    }
+
+    /*  Struct fields  */
+    #listFields div pre {
+      padding: 0.5em;
+      margin: 0;
+    }
+    #listFields .fieldDocs p {
+      padding: 0.5em;
+      margin: 0;
+      border: 1px solid var(--color-background);
+    }
+
+    #content a {
+      color: #27b8f3;
+    }
+    #content a[href^="http"] {
+      color: #2790f3;
+    }
+    #content code a {
+      color: #27b8f3;
+      text-decoration: dotted;
+    }
+    .fieldDocs {
+      border-color:#2A2A2A;
+    }
+    #listNav {
+      background: rgb(18,2,67);
+      background: linear-gradient(90deg, rgba(18,2,67,1) 0%, rgba(101,21,186,1) 74%, rgba(242,72,187,1) 100%);
+    }
+    #listNav li a {
+      color: #fff;
+    }
+    #listNav li a:hover {
+      background-color: #5557;
+      color: #fff;
+    }
+    #listNav li a.active {
+      background-color: inherit;
+      border-color: #f247ba;
+      color: #fff;
+    }
+    #listSearchResults li.selected {
+      background-color: #f247ba
+    }
+    #listSearchResults li.selected a {
+      color: #fff;
+    }
+    .tok-kw {
+        color: var(--color-attribute);
+    }
+    .tok-str {
+        color: var(--color-string);
+    }
+    .tok-builtin {
+        color: #f248bb;
+    }
+    .tok-comment {
+        color: var(--color-comment);
+    }
+    .tok-fn {
+        color: var(--color-func-call);
+    }
+    .tok-null, .tok-number {
+        color: var(--color-constant);
+    }
+    .tok-type {
+        color: var(--color-type);
+    }
+  </style>
+
+  </head>
+  <body>
+    <a id="logo" href="/"></a>
+    <nav id="menu">
+      <a href="/">Home</a>
+      •
+      <a href="/tutorials/getting_started/">Quickstart</a>
+      •
+      <a href="/tutorials/write_first_model/">First Steps</a>
+      <!-- • -->
+      <!-- <a href="$site.page('concepts').link()">Concepts</a> -->
+      <!-- • -->
+      <!-- <a href="$site.page('using_zml_in_own_projects').link()">Using it in projects</a> -->
+      •
+      <a href="/misc/zml_api/" target="_blank">API Docs</a>
+      •
+      <a href="https://github.com/zml/zml" target="_blank">Code</a>
+      •
+      <a href="https://discord.gg/6y72SN2E7H" target="_blank">Discord</a>
+    </nav>
+    <!-- <hr style="width:min(600px, 100vw); border-color:#0798b3; color: white; border-top:1px;"> -->
+    <aside id="sidebar" class="sidebar">
+        <!-- <h3>Docs</h3> -->
+        <a href="/tutorials/"><h5>Tutorials</h5></a>
+        <div class="linkbox">
+            <div><a href="/tutorials/getting_started/">Getting Started with ZML</a></div>
+        
+            <div><a href="/tutorials/write_first_model/">Writing your first model</a></div>
+        
+            <div><a href="/tutorials/working_with_tensors/">Simplifying Dimension Handling with Tagged Tensors</a></div>
+        </div>
+        <a href="/howtos/"><h5>How-Tos</h5></a>
+        <div class="linkbox">
+            <div><a href="/howtos/huggingface_access_token/">Huggingface Token Authentication</a></div>
+        
+            <div><a href="/howtos/using_zml_in_own_projects/">Using ZML in your own projects</a></div>
+        
+            <div><a href="/howtos/deploy_on_server/">Deploying Models on a Server</a></div>
+        
+            <div><a href="/howtos/howto_torch2zml/">How to port Pytorch models to ZML ?</a></div>
+        
+            <div><a href="/howtos/add_weights/">Adding Weights Files</a></div>
+        </div>
+        <a href="/tutorials/"><h5>Learn more</h5></a>
+        <div class="linkbox">
+            <div><a href="/learn/concepts/">ZML Concepts</a></div>
+        </div>
+        <a href="/tutorials/"><h5>Misc</h5></a>
+        <div class="linkbox">
+            <div><a href="/misc/style_guide/">ZML Style Guide</a></div>
+        
+            <div><a href="/misc/zml_api/">API Docs</a></div>
+        
+            <div><a href="/misc/CHANGELOG/">ZML Changelog</a></div>
+        </div>
+    </aside>
+
+    <main>
+        <div id="content">
+  <div id="navWrap">
+    <input type="search" id="search" autocomplete="off" spellcheck="false" placeholder="`s` to search, `?` to see more options">
+    <div id="sectNav" class="hidden"><ul id="listNav"></ul></div>
+  </div>
+  <section>
+  <p id="status">Loading...</p>
+  <h1 id="hdrName" class="hidden"><span></span><a href="#">[src]</a></h1>
+  <div id="fnProto" class="hidden">
+    <pre><code id="fnProtoCode"></code></pre>
+  </div>
+  <div id="tldDocs" class="hidden"></div>
+  <div id="sectParams" class="hidden">
+    <h2>Parameters</h2>
+    <div id="listParams">
+    </div>
+  </div>
+  <div id="sectFnErrors" class="hidden">
+    <h2>Errors</h2>
+    <div id="fnErrorsAnyError">
+      <p><span class="tok-type">anyerror</span> means the error set is known only at runtime.</p>
+    </div>
+    <div id="tableFnErrors"><dl id="listFnErrors"></dl></div>
+  </div>
+  <div id="sectSearchResults" class="hidden">
+    <h2>Search Results</h2>
+    <ul id="listSearchResults"></ul>
+  </div>
+  <div id="sectSearchNoResults" class="hidden">
+    <h2>No Results Found</h2>
+    <p>Press escape to exit search and then '?' to see more options.</p>
+  </div>
+  <div id="sectFields" class="hidden">
+    <h2>Fields</h2>
+    <div id="listFields">
+    </div>
+  </div>
+  <div id="sectTypes" class="hidden">
+    <h2>Types</h2>
+    <ul id="listTypes" class="columns">
+    </ul>
+  </div>
+  <div id="sectNamespaces" class="hidden">
+    <h2>Namespaces</h2>
+    <ul id="listNamespaces" class="columns">
+    </ul>
+  </div>
+  <div id="sectGlobalVars" class="hidden">
+    <h2>Global Variables</h2>
+    <table>
+      <tbody id="listGlobalVars">
+      </tbody>
+    </table>
+  </div>
+  <div id="sectValues" class="hidden">
+    <h2>Values</h2>
+    <table>
+      <tbody id="listValues">
+      </tbody>
+    </table>
+  </div>
+  <div id="sectFns" class="hidden">
+    <h2>Functions</h2>
+    <dl id="listFns">
+    </dl>
+  </div>
+  <div id="sectErrSets" class="hidden">
+    <h2>Error Sets</h2>
+    <ul id="listErrSets" class="columns">
+    </ul>
+  </div>
+  <div id="sectDocTests" class="hidden">
+    <h2>Example Usage</h2>
+    <pre><code id="docTestsCode"></code></pre>
+  </div>
+  <div id="sectSource" class="hidden">
+    <h2>Source Code</h2>
+    <pre><code id="sourceText"></code></pre>
+  </div>
+  </section>
+  <div id="helpDialog" class="hidden">
+    <h1>Keyboard Shortcuts</h1>
+    <dl><dt><kbd>?</kbd></dt><dd>Show this help dialog</dd></dl>
+    <dl><dt><kbd>Esc</kbd></dt><dd>Clear focus; close this dialog</dd></dl>
+    <dl><dt><kbd>s</kbd></dt><dd>Focus the search field</dd></dl>
+    <dl><dt><kbd>u</kbd></dt><dd>Go to source code</dd></dl>
+    <dl><dt><kbd>↑</kbd></dt><dd>Move up in search results</dd></dl>
+    <dl><dt><kbd>↓</kbd></dt><dd>Move down in search results</dd></dl>
+    <dl><dt><kbd>⏎</kbd></dt><dd>Go to active search result</dd></dl>
+  </div>
+  <script src="/zml_api.js"></script>
+</div>
+    </main>
+
+
+    <footer>
+        <!-- OPTION 1: with Zine -->
+        <b>&copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> </b> — <i>made with <a href="https://zine-ssg.io" target="_blank">Zine</a></i>
+
+        <!-- OPTION 2: ZML only -->
+        <!-- &copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> -->
+    </footer>
+  </body>
+</html>

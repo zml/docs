@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+  <head id="head">
+    <meta charset="UTF-8">
+    <!-- <meta name="description" content="Zine: Fast, Scalable and Flexible Static Site Generator"> -->
+    <!-- <meta name="twitter:card" content="summary"> -->
+    <!-- <meta name="twitter:site" content="@croloris"> -->
+    <!-- <meta name="twitter:author" content="@croloris"> -->
+    <!-- <meta name="twitter:description" content="Zine: Fast, Scalable and Flexible Static Site Generator"> -->
+    <!-- <meta name="twitter:title" content="$page.title.suffix(' | Zine')"> -->
+    <meta property="og:title" content="How to port Pytorch models to ZML ?">
+    <meta property="og:type" content="website">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title id="title">
+      How to port Pytorch models to ZML ?
+      - ZML
+    </title>
+    <link rel="stylesheet" type="text/css" href="/fonts.css">
+    <link rel="stylesheet" type="text/css" href="/fira_code.css">
+    <link rel="stylesheet" type="text/css" href="/style.css">
+    <link rel="stylesheet" type="text/css" href="/highlight.css">
+    <link rel="icon" href="/zml.no_light.svg">
+    
+  </head>
+  <body>
+    <a id="logo" href="/"></a>
+    <nav id="menu">
+      <a href="/">Home</a>
+      •
+      <a href="/tutorials/getting_started/">Quickstart</a>
+      •
+      <a href="/tutorials/write_first_model/">First Steps</a>
+      <!-- • -->
+      <!-- <a href="$site.page('concepts').link()">Concepts</a> -->
+      <!-- • -->
+      <!-- <a href="$site.page('using_zml_in_own_projects').link()">Using it in projects</a> -->
+      •
+      <a href="/misc/zml_api/" target="_blank">API Docs</a>
+      •
+      <a href="https://github.com/zml/zml" target="_blank">Code</a>
+      •
+      <a href="https://discord.gg/6y72SN2E7H" target="_blank">Discord</a>
+    </nav>
+    <!-- <hr style="width:min(600px, 100vw); border-color:#0798b3; color: white; border-top:1px;"> -->
+    <aside id="sidebar" class="sidebar">
+        <!-- <h3>Docs</h3> -->
+        <a href="/tutorials/"><h5>Tutorials</h5></a>
+        <div class="linkbox">
+            <div><a href="/tutorials/getting_started/">Getting Started with ZML</a></div>
+        
+            <div><a href="/tutorials/write_first_model/">Writing your first model</a></div>
+        
+            <div><a href="/tutorials/working_with_tensors/">Simplifying Dimension Handling with Tagged Tensors</a></div>
+        </div>
+        <a href="/howtos/"><h5>How-Tos</h5></a>
+        <div class="linkbox">
+            <div><a href="/howtos/huggingface_access_token/">Huggingface Token Authentication</a></div>
+        
+            <div><a href="/howtos/using_zml_in_own_projects/">Using ZML in your own projects</a></div>
+        
+            <div><a href="/howtos/deploy_on_server/">Deploying Models on a Server</a></div>
+        
+            <div><a href="/howtos/howto_torch2zml/">How to port Pytorch models to ZML ?</a></div>
+        
+            <div><a href="/howtos/add_weights/">Adding Weights Files</a></div>
+        </div>
+        <a href="/tutorials/"><h5>Learn more</h5></a>
+        <div class="linkbox">
+            <div><a href="/learn/concepts/">ZML Concepts</a></div>
+        </div>
+        <a href="/tutorials/"><h5>Misc</h5></a>
+        <div class="linkbox">
+            <div><a href="/misc/style_guide/">ZML Style Guide</a></div>
+        
+            <div><a href="/misc/zml_api/">API Docs</a></div>
+        
+            <div><a href="/misc/CHANGELOG/">ZML Changelog</a></div>
+        </div>
+    </aside>
+
+    <main>
+        <div id="content">
+  <style>
+    h1 {
+       margin-top: 0;
+     }
+
+		#docs h2, #docs h3 {
+			text-align: left;
+		}
+
+		#docs h3 {
+			font-size: 1.2rem;
+		}
+
+		#docs h3::before {
+      content: "##";
+      font-size: 1rem;
+      padding-right: 4px;
+      margin-bottom: 0;
+    }
+
+    #docs h2 {
+      font-size: 1.5rem;
+      border-bottom: 1px dashed #aaa;
+    }
+
+    #docs h2::before {
+      content: "#";
+      font-size: 1rem;
+      padding-right: 4px;
+    }
+
+    #docs h4 {
+      font-size: 1rem;
+    }
+
+    table {
+      font-size: 0.9em;
+    }
+    table th {
+      font-size: 1em;
+    }
+    table td {
+      white-space: nowrap;
+    }
+  </style>
+  <h3 class="centered"></h3>
+  <h1>How to port Pytorch models to ZML ?</h1>
+  <div id="docs"><h2>Requirements</h2><p>We assume you already have a working ZML project, and you can run it with a Bazel command like <code>bazel run //my_project:torch2zml</code>. You can refer to <a href="/tutorials/write_first_model/">Write your first model</a> to do so. We also assume that you know enough Python to run the reference implementation.</p><h2>Overview</h2><p>Porting Neural Network implementations can be tedious. Some small errors can degrade the output of the model, in subtle or not so subtle ways. To track down errors in a model with four thousand layers, we best be organized.</p><p>By the way if you are interested in a specific model, be careful that not all implementations of a model you can find on Github are equivalent. Sometimes people introduce subtle bugs when porting across Python libraries. Ideally use the author's implementation, or at least one you have tested yourself.</p><p>The recommended process is as follows.</p><ol><li>run the reference implementation on a known input, and sample layer activations</li><li>start a ZML project and load the sampled reference activations</li><li>start porting layers one by one, and test individual layers</li><li>end-to-end test the model</li></ol><h2>Sampling reference activations</h2><p>Pytorch exposes "forward hooks" that allow to inspect the input/output of each <code>torch.nn.Module</code>. That way it is possible to create a dictionary with each layer input/output, keyed by the name of the layer.</p><p>The main caveat is that if you have a functional implementation that doesn't use <code>torch.nn.Module</code>, this technique won't work.</p><p>It is the easiest to start from a "huggingface" snippet, or a python script that calls the model of your choice on an example input. eg:</p><pre><code class="python"><span class="keyword">import</span> <span class="variable">torch</span>
+<span class="keyword">import</span> <span class="variable">transformers</span>
+
+<span class="variable">model_path</span> <span class="operator">=</span> <span class="string">&quot;meta-llama/Meta-Llama-3-8B&quot;</span>
+
+<span class="variable">pipeline</span> <span class="operator">=</span> <span class="variable">transformers</span>.<span class="function method">pipeline</span>(
+    <span class="string">&quot;text-generation&quot;</span>,
+    <span class="variable">model</span><span class="operator">=</span><span class="variable">model_path</span>,
+    <span class="variable">model_kwargs</span><span class="operator">=</span>{<span class="string">&quot;torch_dtype&quot;</span>: <span class="variable">torch</span>.<span class="property">float16</span>},
+    <span class="comment"># device=&quot;cuda&quot;,</span>
+    <span class="variable">token</span><span class="operator">=</span><span class="variable">token</span>,
+)
+
+<span class="variable">prompt</span> <span class="operator">=</span> <span class="string">&quot;Q: What is the largest animal?\nA:&quot;</span>
+<span class="variable">output</span> <span class="operator">=</span> <span class="function">pipeline</span>(<span class="variable">prompt</span>)
+<span class="function">print</span>(<span class="variable">output</span>)
+</code></pre>
+<p>Then edit the script to import <a href="https://github.com/zml/zml/blob/master/tools/zml_utils.py" target="_blank">zml_utils</a>. This script is standalone and currently it's not package in a python package, so the simplest way is to copy it next to your python script. Then wrap the model/pipeline in a <code>zml_utils.ActivationCollector</code>. The collector wraps the given model, and on call returns the original results AND the activations in a dict of <code>torch.Tensor</code>. After that, you can save those activations to a <code>.pt</code> file.</p><pre><code class="python"><span class="keyword">import</span> <span class="variable">torch</span>
+<span class="keyword">import</span> <span class="variable">transformers</span>
+<span class="keyword">import</span> <span class="variable">zml_utils</span>
+
+<span class="variable">model_path</span> <span class="operator">=</span> <span class="string">&quot;meta-llama/Meta-Llama-3-8B&quot;</span>
+
+<span class="variable">pipeline</span> <span class="operator">=</span> <span class="variable">transformers</span>.<span class="function method">pipeline</span>(
+    <span class="string">&quot;text-generation&quot;</span>,
+    <span class="variable">model</span><span class="operator">=</span><span class="variable">model_path</span>,
+    <span class="variable">model_kwargs</span><span class="operator">=</span>{<span class="string">&quot;torch_dtype&quot;</span>: <span class="variable">torch</span>.<span class="property">float16</span>},
+    <span class="comment"># device=&quot;cuda&quot;,</span>
+)
+<span class="variable">model</span>, <span class="variable">tokenizer</span> <span class="operator">=</span> <span class="variable">pipeline</span>.<span class="property">model</span>, <span class="variable">pipeline</span>.<span class="property">tokenizer</span>
+
+<span class="variable">prompt</span> <span class="operator">=</span> <span class="string">&quot;Q: What is the largest animal?\nA:&quot;</span>
+<span class="comment"># Wrap the pipeline, and extract activations.</span>
+<span class="comment"># Activations files can be huge for big models,</span>
+<span class="comment"># so let&apos;s stop collecting after 1000 layers.</span>
+<span class="variable">pipeline</span> <span class="operator">=</span> <span class="variable">zml_utils</span>.<span class="function method">ActivationCollector</span>(<span class="variable">pipeline</span>, <span class="variable">max_layers</span><span class="operator">=</span><span class="number">1000</span>, <span class="variable">stop_after_first_step</span><span class="operator">=</span><span class="constant builtin">True</span>)
+<span class="variable">output</span>, <span class="variable">activations</span> <span class="operator">=</span> <span class="function">pipeline</span>(<span class="variable">prompt</span>)
+<span class="function">print</span>(<span class="variable">output</span>)
+
+<span class="comment"># Save activations to a file.</span>
+<span class="variable">filename</span> <span class="operator">=</span> <span class="variable">model_path</span>.<span class="function method">split</span>(<span class="string">&quot;/&quot;</span>)[<span class="operator">-</span><span class="number">1</span>] <span class="operator">+</span> <span class="string">&quot;.activations.pt&quot;</span>
+<span class="variable">torch</span>.<span class="function method">save</span>(<span class="variable">activations</span>, <span class="variable">filename</span>)
+<span class="function">print</span>(<span class="string">f&quot;Saved {len(activations)} activations to {filename}&quot;</span>)
+</code></pre>
+<p>Run this script: <code>python activations.py</code> If you're using HuggingFace, make note of the local path where the model is saved, something like <code>~/.cache/huggingface/hub/...</code>. (it should appear on the console when running the script). We will need it in the next steps.</p><h2>Loading model and activations in ZML</h2><p>Let's create a basic ZML program that loads the activations and the Pytorch model. Put the following in <code>my_project/torch2zml.zig</code>.</p><pre><code class="zig"><span class="type qualifier">const</span> <span class="variable">std</span> = <span class="function builtin">@import</span><span class="punctuation bracket">(</span><span class="string">&quot;std&quot;</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+<span class="type qualifier">const</span> <span class="variable">log</span> = <span class="variable">std</span><span class="punctuation delimiter">.</span><span class="field">log</span><span class="punctuation delimiter">;</span>
+
+<span class="type qualifier">const</span> <span class="variable">asynk</span> = <span class="function builtin">@import</span><span class="punctuation bracket">(</span><span class="string">&quot;async&quot;</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+<span class="type qualifier">const</span> <span class="variable">zml</span> = <span class="function builtin">@import</span><span class="punctuation bracket">(</span><span class="string">&quot;zml&quot;</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+
+<span class="attribute">pub</span> <span class="keyword function">fn</span> <span class="function">main</span><span class="punctuation bracket">(</span><span class="punctuation bracket">)</span> <span class="exception">!</span><span class="type builtin">void</span> <span class="punctuation bracket">{</span>
+    <span class="type qualifier">var</span> <span class="variable">gpa</span> = <span class="variable">std</span><span class="punctuation delimiter">.</span><span class="field">heap</span><span class="punctuation delimiter">.</span><span class="function">GeneralPurposeAllocator</span><span class="punctuation bracket">(</span><span class="punctuation delimiter">.</span><span class="punctuation bracket">{</span><span class="punctuation bracket">}</span><span class="punctuation bracket">)</span><span class="punctuation bracket">{</span><span class="punctuation bracket">}</span><span class="punctuation delimiter">;</span>
+    <span class="keyword">defer</span> <span class="variable">_</span> <span class="operator">=</span> <span class="variable">gpa</span><span class="punctuation delimiter">.</span><span class="function">deinit</span><span class="punctuation bracket">(</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+    <span class="operator">try</span> <span class="variable">asynk</span><span class="punctuation delimiter">.</span><span class="field">AsyncThread</span><span class="punctuation delimiter">.</span><span class="function">main</span><span class="punctuation bracket">(</span><span class="variable">gpa</span><span class="punctuation delimiter">.</span><span class="function">allocator</span><span class="punctuation bracket">(</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">,</span> <span class="variable">asyncMain</span><span class="punctuation delimiter">,</span> <span class="punctuation delimiter">.</span><span class="punctuation bracket">{</span><span class="punctuation bracket">}</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+<span class="punctuation bracket">}</span>
+
+<span class="attribute">pub</span> <span class="keyword function">fn</span> <span class="function">asyncMain</span><span class="punctuation bracket">(</span><span class="punctuation bracket">)</span> <span class="exception">!</span><span class="type builtin">void</span> <span class="punctuation bracket">{</span>
+    <span class="type qualifier">var</span> <span class="variable">gpa</span> = <span class="variable">std</span><span class="punctuation delimiter">.</span><span class="field">heap</span><span class="punctuation delimiter">.</span><span class="function">GeneralPurposeAllocator</span><span class="punctuation bracket">(</span><span class="punctuation delimiter">.</span><span class="punctuation bracket">{</span><span class="punctuation bracket">}</span><span class="punctuation bracket">)</span><span class="punctuation bracket">{</span><span class="punctuation bracket">}</span><span class="punctuation delimiter">;</span>
+    <span class="keyword">defer</span> <span class="variable">_</span> <span class="operator">=</span> <span class="variable">gpa</span><span class="punctuation delimiter">.</span><span class="function">deinit</span><span class="punctuation bracket">(</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+    <span class="type qualifier">const</span> <span class="variable">allocator</span> = <span class="variable">gpa</span><span class="punctuation delimiter">.</span><span class="function">allocator</span><span class="punctuation bracket">(</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+
+    <span class="type qualifier">const</span> <span class="variable">args</span> = <span class="operator">try</span> <span class="variable">std</span><span class="punctuation delimiter">.</span><span class="field">process</span><span class="punctuation delimiter">.</span><span class="function">argsAlloc</span><span class="punctuation bracket">(</span><span class="variable">allocator</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+    <span class="keyword">defer</span> <span class="variable">std</span><span class="punctuation delimiter">.</span><span class="field">process</span><span class="punctuation delimiter">.</span><span class="function">argsFree</span><span class="punctuation bracket">(</span><span class="variable">allocator</span><span class="punctuation delimiter">,</span> <span class="variable">args</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+
+    <span class="error">const model_path,</span> <span class="type qualifier">const</span> <span class="variable">activations_path</span> = <span class="variable">args</span><span class="punctuation bracket">[</span><span class="number">1</span><span class="punctuation special">..</span><span class="number">3</span><span class="punctuation bracket">]</span><span class="operator">.*</span><span class="punctuation delimiter">;</span>
+
+    <span class="type qualifier">const</span> <span class="variable">activations</span> = <span class="operator">try</span> <span class="variable">zml</span><span class="punctuation delimiter">.</span><span class="field">aio</span><span class="punctuation delimiter">.</span><span class="field">torch</span><span class="punctuation delimiter">.</span><span class="function">open</span><span class="punctuation bracket">(</span><span class="variable">allocator</span><span class="punctuation delimiter">,</span> <span class="variable">activations_path</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+    <span class="keyword">defer</span> <span class="variable">activations</span><span class="punctuation delimiter">.</span><span class="function">deinit</span><span class="punctuation bracket">(</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+    <span class="variable">log</span><span class="punctuation delimiter">.</span><span class="function">info</span><span class="punctuation bracket">(</span><span class="string">&quot;Found {} activations in {s}&quot;</span><span class="punctuation delimiter">,</span> <span class="punctuation delimiter">.</span><span class="punctuation bracket">{</span> <span class="variable">activations</span><span class="punctuation delimiter">.</span><span class="field">buffers</span><span class="punctuation delimiter">.</span><span class="function">count</span><span class="punctuation bracket">(</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">,</span> <span class="variable">activations_path</span> <span class="punctuation bracket">}</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+
+    <span class="type qualifier">const</span> <span class="variable">model_weights</span> = <span class="operator">try</span> <span class="variable">zml</span><span class="punctuation delimiter">.</span><span class="field">aio</span><span class="punctuation delimiter">.</span><span class="function">detectFormatAndOpen</span><span class="punctuation bracket">(</span><span class="variable">allocator</span><span class="punctuation delimiter">,</span> <span class="variable">model_path</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+    <span class="keyword">defer</span> <span class="variable">model_weights</span><span class="punctuation delimiter">.</span><span class="function">deinit</span><span class="punctuation bracket">(</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+    <span class="variable">log</span><span class="punctuation delimiter">.</span><span class="function">info</span><span class="punctuation bracket">(</span><span class="string">&quot;Found {} model layers in {s}&quot;</span><span class="punctuation delimiter">,</span> <span class="punctuation delimiter">.</span><span class="punctuation bracket">{</span> <span class="variable">model_weights</span><span class="punctuation delimiter">.</span><span class="field">buffers</span><span class="punctuation delimiter">.</span><span class="function">count</span><span class="punctuation bracket">(</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">,</span> <span class="variable">activations_path</span> <span class="punctuation bracket">}</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+<span class="punctuation bracket">}</span>
+</code></pre>
+<p>And add <code>zig_cc_binary</code> target in <code>my_project/BUILD.bazel</code>:</p><pre><code class="python"><span class="function">load</span>(<span class="string">&quot;@zml//bazel:zig.bzl&quot;</span>, <span class="string">&quot;zig_cc_binary&quot;</span>)
+
+<span class="function">zig_cc_binary</span>(
+    <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;torch2zml&quot;</span>,
+    <span class="variable">main</span> <span class="operator">=</span> <span class="string">&quot;torch2zml.zig&quot;</span>,
+    <span class="variable">deps</span> <span class="operator">=</span> [
+        <span class="string">&quot;@zml//async&quot;</span>,
+        <span class="string">&quot;@zml//zml&quot;</span>,
+    ],
+)
+</code></pre>
+<p>Now check that the weights can be correctly loaded using the bazel CLI.</p><pre><code class="bash"><span class="constant">bazel</span> <span class="constant">build</span> <span class="constant">//my_project:torch2zml</span>
+<span class="constant">./bazel-bin/my_project/torch2zml</span> <span class="constant">/path/to/my/model.safetensors.index.json</span> <span class="constant">./my_project/Meta-Llama-3-8B.activations.pt</span>
+
+<span class="constant">info:</span> <span class="constant">Found</span> <span class="constant">1108</span> <span class="constant">activations</span> <span class="constant">in</span> <span class="constant">/Users/guw/Documents/zml/models/torch2zml/Meta-Llama-3-8B.activations.pt</span>
+<span class="constant">debug</span><span class="constant">(zml_io)</span>: <span class="constant">Loading</span> <span class="constant">shard:</span> <span class="constant">model-00004-of-00004.safetensors</span>
+<span class="constant">debug</span><span class="constant">(zml_io)</span>: <span class="constant">Loading</span> <span class="constant">shard:</span> <span class="constant">model-00001-of-00004.safetensors</span>
+<span class="constant">debug</span><span class="constant">(zml_io)</span>: <span class="constant">Loading</span> <span class="constant">shard:</span> <span class="constant">model-00002-of-00004.safetensors</span>
+<span class="constant">debug</span><span class="constant">(zml_io)</span>: <span class="constant">Loading</span> <span class="constant">shard:</span> <span class="constant">model-00003-of-00004.safetensors</span>
+<span class="constant">info:</span> <span class="constant">Found</span> <span class="constant">291</span> <span class="constant">model</span> <span class="constant">layers</span> <span class="constant">in</span> <span class="constant">/Users/guw/Documents/zml/models/torch2zml/Meta-Llama-3-8B.activations.pt</span>
+</code></pre>
+<h2>Loading an individual layer</h2><p>In the above Zig code, the <code>model_weights</code> struct is a wrapper around a flat dictionary, containing an entry for each tensor in the model (similar to a "state dict"). Manipulating a dictionary is generally not very convenient, so let's convert it to a Zig struct.</p><p>Declare the following layer at the bottom of your file:</p><pre><code class="zig"><span class="type qualifier">const</span> <span class="variable">Mlp</span> = <span class="keyword">struct</span> <span class="punctuation bracket">{</span>
+    <span class="field">up_proj</span><span class="punctuation delimiter">:</span> <span class="variable">zml</span><span class="punctuation delimiter">.</span><span class="field">nn</span><span class="punctuation delimiter">.</span><span class="field">Linear</span><span class="punctuation delimiter">,</span>
+    <span class="field">gate_proj</span><span class="punctuation delimiter">:</span> <span class="variable">zml</span><span class="punctuation delimiter">.</span><span class="field">nn</span><span class="punctuation delimiter">.</span><span class="field">Linear</span><span class="punctuation delimiter">,</span>
+    <span class="field">down_proj</span><span class="punctuation delimiter">:</span> <span class="variable">zml</span><span class="punctuation delimiter">.</span><span class="field">nn</span><span class="punctuation delimiter">.</span><span class="field">Linear</span><span class="punctuation delimiter">,</span>
+<span class="punctuation bracket">}</span><span class="punctuation delimiter">;</span>
+</code></pre>
+<p>The <code>zml.nn.Linear</code> is the equivalent of <code>torch.nn.Linear</code> and is defined by its <code>weight</code> and optional <code>bias</code> tensors.</p><p>To create such struct from our <code>model_weights</code> dictionary, we can use the <code>zml.aio.populateModelWithPrefix</code> helper:</p><pre><code class="zig"><span class="attribute">pub</span> <span class="keyword function">fn</span> <span class="function">asyncMain</span><span class="punctuation bracket">(</span><span class="punctuation bracket">)</span> <span class="exception">!</span><span class="type builtin">void</span> <span class="punctuation bracket">{</span>
+    <span class="error">...</span>
+    <span class="type qualifier">const</span> <span class="variable">mlp_shape</span> = <span class="operator">try</span> <span class="variable">zml</span><span class="punctuation delimiter">.</span><span class="field">aio</span><span class="punctuation delimiter">.</span><span class="function">populateModelWithPrefix</span><span class="punctuation bracket">(</span><span class="variable">Mlp</span><span class="punctuation delimiter">,</span> <span class="variable">allocator</span><span class="punctuation delimiter">,</span> <span class="variable">model_weights</span><span class="punctuation delimiter">,</span> <span class="string">&quot;model.layers.0.mlp&quot;</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+    <span class="variable">log</span><span class="punctuation delimiter">.</span><span class="function">info</span><span class="punctuation bracket">(</span><span class="string">&quot;layer.0.mlp: {}&quot;</span><span class="punctuation delimiter">,</span> <span class="punctuation delimiter">.</span><span class="punctuation bracket">{</span><span class="variable">mlp_shape</span><span class="punctuation bracket">}</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+<span class="punctuation bracket">}</span>
+</code></pre>
+<p>Build and run, using previous commands. Typical errors are of the form "Layer not found: ...". This is typically due to the naming of layers in Zig, not matching the naming in the file. Double check everything, don't hesitate to print more things, e.g. in the Python script. Alternatively, Huggingface's web-interface allows to peek into <code>.safetensor</code> files.</p><h2>Testing an individual layer</h2><p>Finally, we are going to write the actual math code for our <code>MLP</code> layer.</p><pre><code class="zig"><span class="type qualifier">const</span> <span class="variable">Mlp</span> = <span class="keyword">struct</span> <span class="punctuation bracket">{</span>
+    <span class="field">up_proj</span><span class="punctuation delimiter">:</span> <span class="variable">zml</span><span class="punctuation delimiter">.</span><span class="field">nn</span><span class="punctuation delimiter">.</span><span class="field">Linear</span><span class="punctuation delimiter">,</span>
+    <span class="field">gate_proj</span><span class="punctuation delimiter">:</span> <span class="variable">zml</span><span class="punctuation delimiter">.</span><span class="field">nn</span><span class="punctuation delimiter">.</span><span class="field">Linear</span><span class="punctuation delimiter">,</span>
+    <span class="field">down_proj</span><span class="punctuation delimiter">:</span> <span class="variable">zml</span><span class="punctuation delimiter">.</span><span class="field">nn</span><span class="punctuation delimiter">.</span><span class="field">Linear</span><span class="punctuation delimiter">,</span>
+
+    <span class="attribute">pub</span> <span class="keyword function">fn</span> <span class="function">forward</span><span class="punctuation bracket">(</span><span class="parameter">self</span><span class="punctuation delimiter">:</span> <span class="variable">Mlp</span><span class="punctuation delimiter">,</span> <span class="parameter">x</span><span class="punctuation delimiter">:</span> <span class="variable">Tensor</span><span class="punctuation bracket">)</span> <span class="variable">Tensor</span> <span class="punctuation bracket">{</span>
+        <span class="type qualifier">const</span> <span class="variable">proj</span> = <span class="variable">zml</span><span class="punctuation delimiter">.</span><span class="function">call</span><span class="punctuation bracket">(</span><span class="variable">self</span><span class="punctuation delimiter">.</span><span class="field">up_proj</span><span class="punctuation delimiter">,</span> <span class="punctuation delimiter">.</span><span class="variable builtin">forward</span><span class="punctuation delimiter">,</span> <span class="punctuation delimiter">.</span><span class="punctuation bracket">{</span><span class="variable">x</span><span class="punctuation bracket">}</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+        <span class="type qualifier">var</span> <span class="variable">output</span> = <span class="variable">zml</span><span class="punctuation delimiter">.</span><span class="function">call</span><span class="punctuation bracket">(</span><span class="variable">self</span><span class="punctuation delimiter">.</span><span class="field">gate_proj</span><span class="punctuation delimiter">,</span> <span class="punctuation delimiter">.</span><span class="variable builtin">forward</span><span class="punctuation delimiter">,</span> <span class="punctuation delimiter">.</span><span class="punctuation bracket">{</span><span class="variable">x</span><span class="punctuation bracket">}</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+        <span class="variable">output</span> <span class="operator">=</span> <span class="variable">output</span><span class="punctuation delimiter">.</span><span class="function">silu</span><span class="punctuation bracket">(</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">.</span><span class="function">mul</span><span class="punctuation bracket">(</span><span class="variable">proj</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+        <span class="keyword return">return</span> <span class="variable">zml</span><span class="punctuation delimiter">.</span><span class="function">call</span><span class="punctuation bracket">(</span><span class="variable">self</span><span class="punctuation delimiter">.</span><span class="field">down_proj</span><span class="punctuation delimiter">,</span> <span class="punctuation delimiter">.</span><span class="variable builtin">forward</span><span class="punctuation delimiter">,</span> <span class="punctuation delimiter">.</span><span class="punctuation bracket">{</span><span class="variable">output</span><span class="punctuation bracket">}</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+    <span class="punctuation bracket">}</span>
+<span class="punctuation bracket">}</span><span class="punctuation delimiter">;</span>
+</code></pre>
+<p>Note that we use <code>zml.call</code> instead of directly calling <code>self.up_proj.forward(x)</code>. Calling <code>forward</code> directly results in the same computation happening at runtime; but going through <code>zml.call</code> allows ZML to generate an MLIR which is closer to the Zig code and therefore easier to read.</p><p>We can test it with the <code>zml.testing.testLayer</code> utility:</p><pre><code class="zig"><span class="attribute">pub</span> <span class="keyword function">fn</span> <span class="function">asyncMain</span><span class="punctuation bracket">(</span><span class="punctuation bracket">)</span> <span class="exception">!</span><span class="type builtin">void</span> <span class="punctuation bracket">{</span>
+    <span class="error">...</span>
+    
+    <span class="type qualifier">var</span> <span class="variable">ctx</span> = <span class="operator">try</span> <span class="variable">zml</span><span class="punctuation delimiter">.</span><span class="field">Context</span><span class="punctuation delimiter">.</span><span class="function">init</span><span class="punctuation bracket">(</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+    <span class="keyword">defer</span> <span class="variable">ctx</span><span class="punctuation delimiter">.</span><span class="function">deinit</span><span class="punctuation bracket">(</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+    <span class="type qualifier">const</span> <span class="variable">platform</span> = <span class="variable">ctx</span><span class="punctuation delimiter">.</span><span class="function">autoPlatform</span><span class="punctuation bracket">(</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+    <span class="type qualifier">const</span> <span class="variable">mlp_weights</span> = <span class="operator">try</span> <span class="variable">zml</span><span class="punctuation delimiter">.</span><span class="field">aio</span><span class="punctuation delimiter">.</span><span class="function">loadBuffersFromModel</span><span class="punctuation bracket">(</span><span class="variable">Mlp</span><span class="punctuation delimiter">,</span> <span class="variable">mlp_shape</span><span class="punctuation delimiter">,</span> <span class="variable">model_weights</span><span class="punctuation delimiter">,</span> <span class="variable">allocator</span><span class="punctuation delimiter">,</span> <span class="variable">platform</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+
+    <span class="variable">zml</span><span class="punctuation delimiter">.</span><span class="field">testing</span><span class="punctuation delimiter">.</span><span class="function">testLayer</span><span class="punctuation bracket">(</span><span class="variable">platform</span><span class="punctuation delimiter">,</span> <span class="variable">activations</span><span class="punctuation delimiter">,</span> <span class="string">&quot;model.layers.0.mlp&quot;</span><span class="punctuation delimiter">,</span> <span class="variable">mlp_shape</span><span class="punctuation delimiter">,</span> <span class="variable">mlp_weights</span><span class="punctuation delimiter">,</span> <span class="float">1e-3</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+<span class="punctuation bracket">}</span>
+</code></pre>
+<p>During this phase, you have three kinds of errors that can appear:</p><ul><li>Zig compilation errors: we've all have been there, learning a new language can be tough. Normally, the compiler should help you figure out what's wrong. You can also check <a href="/learn/concepts/">ZML concepts</a> that explains types used by ZML.</li><li>Buffer not found errors: be careful that you need to use the naming scheme of the inference pipeline when loading the activations. Depending on how you write your code, you may have a different naming convention in the model file and in the activation file. This is because in Python and in particular the <code>transformers</code> library, it's not uncommon to wrap the model in a <code>Pipeline</code> object before using it. So a given layer may be named <code>layer.0.mlp</code> in the model file, but its activations may be saved under <code>model.layer.0.mlp</code>.</li><li>MLIR compilation errors: typically this is caused by a mathematical error in the <code>forward</code> function. To help here, you can log the shapes of the input and intermediary values: <code>std.log.info(&quot;x: {}&quot;, .{x})</code>, and put similar print statements in the Python code. You can also consider splitting a big layer into smaller parts. Since our code only explicitly captures <code>torch.nn.Module</code> input/output, you may need to modify the Python script to add some extra tensors to the dictionary with example input/output of a specific function.</li></ul><h2>General tips</h2><ul><li><p>Porting models can be hard, especially if the original code is messy, has poor comments, behaves differently on different input shapes, or has unused code paths. Start by identifying parts of the Python code which are unused. It is common in research code that some code paths were written for one paper, but didn't get used in following papers.</p></li><li><p>ZML offers a few Pytorch specific helpers in <code>zml.torch</code>; those operators are offered to help you port models, but in general they may have weird APIs. If you're lucky and the code you are porting has comments indicating "tags", eg "C,W,H" of tensors, you can port this to actual tensor attributes using <code>x.withTags(.{.c, .w, .h})</code>, and use those tags (eg <code>.c</code>) to refer to axes instead of offsets. E.g. in Pytorch: <code>x.sum(0) # reduce over channel axis</code> becomes <code>x.sum(.c)</code>. More on this topic in <a href="/tutorials/working_with_tensors/">"Working with tensors"</a>.</p></li></ul></div>
+</div>
+    </main>
+
+
+    <footer>
+        <!-- OPTION 1: with Zine -->
+        <b>&copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> </b> — <i>made with <a href="https://zine-ssg.io" target="_blank">Zine</a></i>
+
+        <!-- OPTION 2: ZML only -->
+        <!-- &copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> -->
+    </footer>
+  </body>
+</html>
