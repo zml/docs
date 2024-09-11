@@ -70,10 +70,11 @@ jobs:
           date >> README.md
           git add .
           git remote add sshtarget git@github.com:zml/docs
+          eval "$(ssh-agent -s)"
+          ssh-keyscan -t ed25519 github.com > ~/.ssh/known_hosts
+          ssh-add - <<< "${{ secrets.DEPLOY_KEY }}"
           git commit -m "Update GitHub Pages"
           git push sshtarget docs
-
-
-          # try the x-access url
-          # the token only has read access!!!!
+          # alternative with the x-access url
+          # but: the token only has read access!!!!
           # git push https://x-access-token:${{ secrets.ORG_PAT }}@github.com/zml/zml.git docs
