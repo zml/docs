@@ -2,6 +2,25 @@ const std = @import("std");
 const zine = @import("zine");
 
 pub fn build(b: *std.Build) !void {
+    const wasm_target = b.resolveTargetQuery(.{
+        .cpu_arch = .wasm32,
+        .os_tag = .freestanding,
+    });
+
+    // Vendored version of https://github.com/ziglang/zig/tree/0.13.0/lib/docs/wasm
+    const docs_wasm = b.addExecutable(.{
+        .name = "main",
+        .target = wasm_target,
+        .optimize = .Debug,
+        .root_source_file = .{ .cwd_relative = "zig_docs/main.zig" },
+    });
+    docs_wasm.entry = .disabled;
+    docs_wasm.rdynamic = true;
+    const Walk = b.addModule("Walk", .{
+        .root_source_file = .{ .cwd_relative = "zig_docs/Walk.zig" },
+    });
+    docs_wasm.root_module.addImport("Walk", Walk);
+
     zine.website(b, .{
         .title = "ZML Documentation Website",
         .host_url = "https://docs.zml.ai",
@@ -13,7 +32,7 @@ pub fn build(b: *std.Build) !void {
             "zml.no_light.svg",
         },
         .build_assets = &.{
-            staticAsset(b, "main.wasm"),
+            .{ .name = "main.wasm", .lp = docs_wasm.getEmittedBin(), .install_path = "main.wasm", .install_always = true },
             staticAsset(b, "main.js"),
             staticAsset(b, "sources.tar"),
         },

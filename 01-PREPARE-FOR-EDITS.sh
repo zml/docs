@@ -14,7 +14,7 @@ curl https://ziglang.org/documentation/0.13.0/std/main.wasm -s -o WORKSPACE/main
 curl https://ziglang.org/documentation/0.13.0/std/main.js -s -o WORKSPACE/main.js
 
 # link-in the assets and layouts
-for d in assets layouts ; do
+for d in assets layouts zig_docs; do
     if [ ! -h ${WORKSPACE}/$d ] ; then
         ln -s ../$d ${WORKSPACE}/$d
     fi
@@ -42,7 +42,3 @@ for i in $(find content -iname '*.smd') ; do
     mkdir -p $(dirname $SMD_DEST)
     cat $SMD_SOURCE $MD_SOURCE > $SMD_DEST
 done
-
-# finally, copy over build.zig, build.zig.zon because zine does not like 
-# subdirs
-cp -v ./build.zig* $WORKSPACE/
