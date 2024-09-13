@@ -8,9 +8,6 @@ const Decl = Walk.Decl;
 const gpa = std.heap.wasm_allocator;
 const Oom = error{OutOfMemory};
 
-/// Delete this to find out where URL escaping needs to be added.
-pub const missing_feature_url_escape = true;
-
 pub const RenderSourceOptions = struct {
     skip_doc_comments: bool = false,
     skip_comments: bool = false,
@@ -162,9 +159,8 @@ pub fn fileSourceHtml(
                     const fn_link = options.fn_link.get();
                     const fn_token = main_tokens[fn_link.ast_node];
                     if (token_index == fn_token + 1) {
-                        try out.appendSlice(gpa, "<a class=\"tok-fn\" href=\"#");
-                        _ = missing_feature_url_escape;
-                        try fn_link.fqn(out);
+                        try out.appendSlice(gpa, "<a class=\"tok-fn\"");
+                        try fn_link.fqnAsHref(gpa, out);
                         try out.appendSlice(gpa, "\">");
                         try appendEscaped(out, slice);
                         try out.appendSlice(gpa, "</a>");
@@ -197,10 +193,9 @@ pub fn fileSourceHtml(
                     g.field_access_buffer.clearRetainingCapacity();
                     try walkFieldAccesses(file_index, &g.field_access_buffer, field_access_node);
                     if (g.field_access_buffer.items.len > 0) {
-                        try out.appendSlice(gpa, "<a href=\"#");
-                        _ = missing_feature_url_escape;
-                        try out.appendSlice(gpa, g.field_access_buffer.items);
-                        try out.appendSlice(gpa, "\">");
+                        try out.appendSlice(gpa, "<a");
+                        try Decl.renderHref(out.writer(gpa), g.field_access_buffer.items);
+                        try out.appendSlice(gpa, ">");
                         try appendEscaped(out, slice);
                         try out.appendSlice(gpa, "</a>");
                     } else {
@@ -213,10 +208,9 @@ pub fn fileSourceHtml(
                     g.field_access_buffer.clearRetainingCapacity();
                     try resolveIdentLink(file_index, &g.field_access_buffer, token_index);
                     if (g.field_access_buffer.items.len > 0) {
-                        try out.appendSlice(gpa, "<a href=\"#");
-                        _ = missing_feature_url_escape;
-                        try out.appendSlice(gpa, g.field_access_buffer.items);
-                        try out.appendSlice(gpa, "\">");
+                        try out.appendSlice(gpa, "<a");
+                        try Decl.renderHref(out.writer(gpa), g.field_access_buffer.items);
+                        try out.appendSlice(gpa, ">");
                         try appendEscaped(out, slice);
                         try out.appendSlice(gpa, "</a>");
                         break :i;

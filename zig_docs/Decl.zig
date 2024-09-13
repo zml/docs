@@ -12,6 +12,9 @@ file: Walk.File.Index,
 /// The decl whose namespace this is in.
 parent: Index,
 
+/// Delete this to find out where URL escaping needs to be added.
+const missing_feature_url_escape = true;
+
 pub const ExtraInfo = struct {
     is_pub: bool,
     name: []const u8,
@@ -157,6 +160,16 @@ pub fn fqn(decl: *const Decl, out: *std.ArrayListUnmanaged(u8)) Oom!void {
     }
 }
 
+threadlocal var _fqn_buf: [1024]u8 = undefined;
+
+pub fn fqnAsHref(decl: *const Decl, allocator: std.mem.Allocator, out: *std.ArrayListUnmanaged(u8)) Oom!void {
+    var _fqn = std.ArrayListUnmanaged(u8).fromOwnedSlice(&_fqn_buf);
+    _fqn.items.len = 0;
+    try decl.fqn(&_fqn);
+
+    try renderHref(out.writer(allocator), _fqn.items);
+}
+
 pub fn reset_with_path(decl: *const Decl, list: *std.ArrayListUnmanaged(u8)) Oom!void {
     list.clearRetainingCapacity();
     try append_path(decl, list);
@@ -223,4 +236,27 @@ pub fn find(search_string: []const u8) Decl.Index {
         current_decl_index = current_decl_index.get().get_child(component) orelse return .none;
     }
     return current_decl_index;
+}
+
+/// Replace a fully qualified name from Zig std symbol by an external link.
+/// fqn is not allowed to alias to out.
+pub fn renderHref(writer: anytype, noalias name: []const u8) !void {
+    std.log.debug("checking fqn: \"{s}\"", .{name});
+
+    const std_module = std.mem.indexOf(u8, name, ".std.");
+    const std_root = if (std.mem.endsWith(u8, name, ".std")) name.len - 4 else null;
+
+    if (std_module orelse std_root) |std_dot_start| {
+        const std_href = " href=\"https://ziglang.org/documentation/0.13.0/std/#";
+        try writer.writeAll(std_href);
+        _ = missing_feature_url_escape;
+        try writer.writeAll(name[std_dot_start + 1 ..]);
+        try writer.writeByte('"');
+        std.log.debug("replaced name: \"{s}\" -> {s}{s}", .{ name, std_href, name });
+    } else {
+        try writer.writeAll(" href=\"#");
+        _ = missing_feature_url_escape;
+        try writer.writeAll(name);
+        try writer.writeByte('"');
+    }
 }

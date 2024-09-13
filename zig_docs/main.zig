@@ -9,7 +9,7 @@ const Decl = Walk.Decl;
 const fileSourceHtml = @import("html_render.zig").fileSourceHtml;
 const appendEscaped = @import("html_render.zig").appendEscaped;
 const resolveDeclLink = @import("html_render.zig").resolveDeclLink;
-const missing_feature_url_escape = @import("html_render.zig").missing_feature_url_escape;
+const renderHref = Decl.renderHref;
 
 const gpa = std.heap.wasm_allocator;
 
@@ -238,9 +238,8 @@ const ErrorIdentifier = packed struct(u64) {
         try out.appendSlice(gpa, "<dt>");
         try out.appendSlice(gpa, name);
         if (has_link) {
-            try out.appendSlice(gpa, " <a href=\"#");
-            _ = missing_feature_url_escape;
-            try decl_index.get().fqn(out);
+            try out.appendSlice(gpa, " <a");
+            try decl_index.get().fqnAsHref(gpa, out);
             try out.appendSlice(gpa, "\">");
             try out.appendSlice(gpa, decl_index.get().extra_info().name);
             try out.appendSlice(gpa, "</a>");
@@ -695,9 +694,8 @@ fn render_docs(
                             g.link_buffer.clearRetainingCapacity();
                             try resolveDeclLink(resolved_decl_index, &g.link_buffer);
 
-                            try writer.writeAll("<a href=\"#");
-                            _ = missing_feature_url_escape;
-                            try writer.writeAll(g.link_buffer.items);
+                            try writer.writeAll("<a");
+                            try renderHref(writer, g.link_buffer.items);
                             try writer.print("\">{}</a>", .{markdown.fmtHtml(content)});
                         } else {
                             try writer.print("{}", .{markdown.fmtHtml(content)});
