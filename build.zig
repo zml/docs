@@ -13,19 +13,19 @@ pub fn build(b: *std.Build) !void {
             "zml.no_light.svg",
         },
         .build_assets = &.{
-            .{
-                .name = "main_wasm",
-                .lp = b.path("../zml/bazel-bin/zml/docs.docs/main.wasm"),
-                .install_path = "main.wasm",
-                .install_always = true,
-            },
-            .{
-                .name = "sources",
-                .lp = b.path("../zml/bazel-bin/zml/docs.docs/sources.tar"),
-                .install_path = "sources.tar",
-                .install_always = true,
-            },
+            staticAsset(b, "main.wasm"),
+            staticAsset(b, "main.js"),
+            staticAsset(b, "sources.tar"),
         },
         .debug = true,
     });
+}
+
+fn staticAsset(b: *std.Build, name: []const u8) zine.BuildAsset {
+    return .{
+        .name = name,
+        .lp = b.path(name),
+        .install_path = name,
+        .install_always = true,
+    };
 }

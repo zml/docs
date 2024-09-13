@@ -1,2 +1,5 @@
 zml/
-workspace/
+WORKSPACE/
+
+.zig-cache/
+zig-out/

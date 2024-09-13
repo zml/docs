@@ -10,6 +10,9 @@ else
     mkdir $WORKSPACE
 fi
 
+curl https://ziglang.org/documentation/0.13.0/std/main.wasm -s -o WORKSPACE/main.wasm
+curl https://ziglang.org/documentation/0.13.0/std/main.js -s -o WORKSPACE/main.js
+
 # link-in the assets and layouts
 for d in assets layouts ; do
     if [ ! -h ${WORKSPACE}/$d ] ; then

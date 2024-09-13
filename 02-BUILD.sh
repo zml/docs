@@ -1,10 +1,9 @@
 cd zml
 echo "Starting Bazel build..."
-bazel build //zml:docs
+bazel build //zml:sources
 cd ..
-# we reference these outputs in build.zig
-# - ./zml/bazel-bin/zml/docs.docs/sources.tar
-# - ./zml/bazel-bin/zml/docs.docs/main.wasm
+cp ./zml/bazel-bin/zml/sources.tar WORKSPACE/
+
 cd WORKSPACE
 echo "Starting Zine build..."
 zig build $@
