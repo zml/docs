@@ -27,16 +27,11 @@ jobs:
           path: zml
           ref: master
 
-      # Set up Python
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12'
-
       # Set up Zig
-      - uses: goto-bus-stop/setup-zig@v2
+      - uses: mlugg/setup-zig@v1
         with:
           version: 0.13.0
+          mirror: 'https://mirror.zml.ai/zig'
 
       # Run scripts to build the static website with Zine
       - name: Run build scripts
