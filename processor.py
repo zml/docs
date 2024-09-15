@@ -38,8 +38,16 @@ class IngoreFileAction:
     source_file: str      # the file being processed
     reason: str
 
+@dataclass 
+class TranslateImageAction:
+    source_file: str
+    original: str
+    destination: str
+
+
 Action = Union[CreateDirAction, TranslateLinkAction, MergeIntoSmdAction,
-               SplitSmdAction, ProcessingFileAction, IngoreFileAction]
+               SplitSmdAction, ProcessingFileAction, IngoreFileAction, 
+               TranslateImageAction]
 
 
 # helper functions
@@ -223,6 +231,14 @@ class Github2Zine:
                                                 destination=new_target))
         return link_url
 
+    # TODO: this is temp until loris fixes zine
+    def rewrite_image_link(self, relative_path, img_text, img_target):
+        new_target = f"[{img_text}]($image.url('{img_target}'))"
+        self.actions.append(TranslateImageAction(source_file=relative_path,
+                                                original=img_target,
+                                                destination=new_target))
+        return new_target
+
     def rewrite_content(self, markdown_content:str, relative_path:str) -> str:
         """
         - rewrites markdown links
@@ -230,6 +246,7 @@ class Github2Zine:
         - also handles newlines in links
         """
         link_pattern = re.compile(r'(?<!\!)\[([^\]]*?)\]\(([^)]+)\)', re.DOTALL)
+        image_link_pattern = re.compile(r'!\[([^\]]*?)\]\(([^)]+)\)', re.DOTALL)
 
         def handle_link(match: re.Match[str]) -> str:
             # Replace newlines in link text with spaces
@@ -243,9 +260,19 @@ class Github2Zine:
                 # Rewrite the link if it's not an HTTP URL
                 rewritten_link = self.rewrite_link(relative_path, link_text, target)
                 return rewritten_link
+
+        def handle_image_link(match: re.Match[str]) -> str:
+            img_text = match.group(1).replace('\n', ' ')  # Replace newlines in image text with spaces
+            img_target = match.group(2).strip()  # Get the image target and strip any extra whitespace
+            # Rewrite the image link using the rewrite_image_link function
+            rewritten_image_link = self.rewrite_image_link(relative_path, img_text, img_target)
+            return rewritten_image_link
         
         # Replace all links in the markdown content using the handle_link function
         rewritten_content = link_pattern.sub(handle_link, markdown_content)
+
+        # now the images
+        rewritten_content = image_link_pattern.sub(handle_image_link, rewritten_content)
         return rewritten_content
 
 
