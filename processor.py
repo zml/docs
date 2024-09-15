@@ -454,23 +454,21 @@ class Zine2Github:
                 search_target = target[1:]
             search_smd = os.path.join(self.workspace, 'content', search_target + '.smd')
             search_index = os.path.join(self.workspace, 'content', search_target, 'index.smd')
-            print('target', target)
-            print('resolved', resolved)
-            print('target_file', target_file)
-            print('target_dir', target_dir)
-            print('searching for', search_smd)
             if os.path.exists(search_smd):
                 # we link to an smd file
                 target_file += '.md'
             elif os.path.exists(search_index):
-                if not target_file.endswith('/') and target_file :
-                    target_file += '/README.md' # link to a directory
+                if not target_file or target_file.endswith('/'):
+                    sep = '/'
+                    if not target_file:
+                        sep = ''
+                    target_file += f'{sep}README.md' # link to a directory
                     # linking to directory rather than README.md is safer if the
                     # latter doesn't exist; it will still work in GH
 
             if target_dir:
-                target_dir = f'{target_dir}'
-            new_target = f'{target_dir}/{target_file}{anchor}'
+                target_dir = f'{target_dir}/'
+            new_target = f'{target_dir}{target_file}{anchor}'
         else:
             new_target = anchor
 
@@ -482,7 +480,6 @@ class Zine2Github:
 
     # TODO: this is temp until loris fixes zine
     def rewrite_image_link(self, relative_path, img_text, img_target):
-        print(relative_path, img_text, img_target)
         assert False, "There shouldn't be any ![image](links) until zine is fixed"
         # new_target = f"[{img_text}]($image.url('{img_target}'))"
         # self.actions.append(TranslateImageAction(source_file=relative_path,
@@ -511,8 +508,6 @@ class Zine2Github:
                 return rewritten_link
 
         def handle_image_link(match: re.Match[str]) -> str:
-            print("*******")
-            print(match.group(0))
             img_text = match.group(1).replace('\n', ' ')
             # Get the image target and strip any extra whitespace
             img_target = match.group(2).strip()
