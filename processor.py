@@ -3,6 +3,7 @@ import os
 import re
 from dataclasses import dataclass
 from typing import Union
+from pathlib import Path
 
 
 # action dataclasses for logging
@@ -18,7 +19,7 @@ class TranslateLinkAction:
 
 @dataclass
 class MergeIntoSmdAction:
-    source_file: str      # the .smd source file
+    smd_dest: str         # the resulting combined .smd file
     smd_source: str       # the .smd (yaml header) file
     md_source: str        # the .md (content) file
 
@@ -69,14 +70,12 @@ def has_extension(file: str, ext: str) -> bool:
 def change_extension(file: str, ext: str) -> bool:
     assert ext.startswith('.')
     base, _ = os.path.splitext(file)
-    print(f'{file} -> {base}{ext}')
     return f'{base}{ext}'
 
 def rename_basename(path: str, new_name: str) -> str:
     components = path.split('/')[:-1]
     components.append(new_name)
     return '/'.join(components)
-
 
 def remove_enclosing_slashes(path: str) -> str:
     if path.startswith('/'):
@@ -94,6 +93,28 @@ def get_matching_path(file: str, strip_path: str, prepend_path: str) -> str:
         raise ValueError(f'file `{file}` does not seem to be in {strip_path}')
     sub_path = remove_enclosing_slashes(file[len(strip_path):])
     return f'{prepend_path}/{sub_path}'
+
+def get_dir_of(path: str) -> str:
+    path, _ = os.path.split(path)
+    return path
+
+def resolve_link(md_root: str, md_file: str, relative_link: str) -> str:
+    """
+    Resolve the relative link within the context of the md_root.
+
+    :param md_root: The root directory for markdown files.
+    :param md_file: The path to the markdown file where the link is found.
+    :param relative_link: The relative link target within the markdown file.
+    :return: The resolved path of the link within md_root.
+    """
+    # Convert the paths to Path objects
+    md_root_path = Path(md_root)
+    md_file_path = Path(md_file)
+    # Combine md_file_path with the relative link to get the full target path
+    link_target_path = (md_file_path.parent / relative_link).resolve()
+    # Calculate the relative path of the link target within md_root
+    resolved_path = link_target_path.relative_to(md_root_path.resolve())
+    return str(resolved_path)
 
 
 class Github2Zine:
@@ -126,44 +147,72 @@ class Github2Zine:
             if not os.path.exists(smd_yaml_src):
                 self.actions.append(IngoreFileAction(source_file=source_md,
                     reason=f'Matching .smd file {smd_yaml_src} does not exist'))
-            # read the source smd file
-            # append the new_content to the smd content
-            # create the workdir subdirs if necessary
-            # create the workdir smd file
+                continue
+            self.process_file(source_md, smd_yaml_src)
 
 
-    def process_file(self, md_path: str):
+    def process_file(self, md_path: str, smd_src_path: str):
         """
         Processes a single file:
             - rewrites links
-            - renames to appropriate .smd
+            - 'renames' to appropriate .smd
             - returns both rewritten content and renamed file
 
-        If write_to_smd is True, the content is appended to the `smd` file in 
-        the Zine docs collection. It is an error not to have a corresponding 
-        `smd` file in the Zine folder.
+        If self.dry_run is False, the content is appended to the `smd` file in 
+        the Zine docs collection. 
         """
         # read content
-        content = ''
+        with open(md_path, 'rt') as f:
+            content = f.read()
         new_content = self.rewrite_content(content, md_path)
-        new_name = self.rename_file(md_path)
-        return new_name, new_content
+        # read the source smd file
+        # append the new_content to the smd content
+        # smd dest path = smd_src_path in the WORKDIR
+        smd_dest_path = get_matching_path(smd_src_path, self.zine_path, self.workspace)
 
-    def rename_file(self, actions, relative_path: str):
-        """
-        generate smd path:
-           relative path to gh_path -> ./content/.../.smd
-           rename basename from README.md -> index.smd
-        """
-        assert relative_path.endswith('.md')
-        # TODO: add action
+        # create the workdir subdirs if necessary
+        smd_dirs = get_dir_of(smd_dest_path)
+        if not os.path.exists(smd_dirs):
+            self.actions.append(CreateDirAction(directory=smd_dirs))
+            if not self.dry_run:
+                os.makedirs(smd_dirs, exist_ok=False)
+        # create the workdir smd file
+        self.actions.append(MergeIntoSmdAction(
+            smd_dest=smd_dest_path, smd_source=smd_src_path, md_source=md_path))
+        if not self.dry_run:
+            pass
+        return
+
 
     def rewrite_link(self, relative_path: str, link_text: str, target: str):
-        # Placeholder function - replace with your actual link rewriting logic
-        # For demonstration, simply showing a rewritten format
-        link_url = f"[{link_text}]({relative_path}/{target})"
-        self.collected_links.append(link_url)
-        # TODO: actions
+        original = target
+        if '#' in target:
+            target, anchor = target.split('#', 1)
+            anchor = f'#{anchor}'
+        else:
+            anchor = ''
+        if target and not target.endswith('.md'):
+            raise ValueError(f'Link target `{target}` in {relative_path} does not point to a .md file!')
+
+        if target:
+            resolved = resolve_link(self.gh_path, relative_path, target)
+            target_file = os.path.basename(resolved)
+            target_dir = os.path.dirname(resolved)
+            if target_file == 'README.md':
+                target_file = '' # -> index.smd
+            else:
+                # strip extension
+                target_file, _ = os.path.splitext(target_file)
+            if target_dir:
+                target_dir = f'/{target_dir}'
+            new_target = f'{target_dir}/{target_file}{anchor}'
+        else:
+            new_target = anchor
+
+        link_url = f'[{link_text}]({new_target})'
+        self.actions.append(TranslateLinkAction(source_file=relative_path,
+                                                original=original,
+                                                destination=new_target))
         return link_url
 
     def rewrite_content(self, markdown_content:str, relative_path:str) -> str:
@@ -254,6 +303,8 @@ def usage_and_exit():
     print("The first parameter MODE defines the conversion direction:")
     print("EDIT   : creates the WORKSPACE for editing")
     print("COMMIT : converts back to the GitHub representation, for committing")
+    print()
+    print("Example: python processor.py EDIT content zml/docs WORKSPACE --dry-run")
     sys.exit(1)
 
 
@@ -268,14 +319,20 @@ def main(args):
     smd_dir = args[1]
     if not os.path.exists(smd_dir):
         print(f"ERROR: {smd_dir} does not exist")
+        sys.exit(1)
 
     md_dir = args[2]
     if not os.path.exists(md_dir):
         print(f"ERROR: {md_dir} does not exist")
+        sys.exit(1)
 
     workspace = args[3]
     if not os.path.exists(workspace):
-        print(f"ERROR: {workspace} does not exist")
+        if mode == 'edit':
+            print(f"WARNING: {workspace} does not exist. It will be created.")
+        else:
+            print(f"ERROR: {workspace} does not exist.")
+            sys.exit(1)
 
     dry_run = False
     if len(args) > 4:
