@@ -31,6 +31,13 @@ jobs:
           curl -L -o /tmp/test.tar.xz https://mirror.zml.ai/zig/zig-linux-x86_64-0.13.0.tar.xz?source=github-actions
           ls -alih /tmp/test.tar.xz
           tar -tf /tmp/test.tar.xz
+
+      # Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
       # Set up Zig
       - uses: mlugg/setup-zig@v1
         with:
