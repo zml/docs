@@ -334,6 +334,8 @@ class Zine2Github:
         # file exists
         smd_sources = find_files_with_extension(self.workspace, '.smd')
         for source_smd in smd_sources:
+            if '.zig-cache' in source_smd:
+                continue
             self.actions.append(ProcessingFileAction(source_file=source_smd))
             dest_smd_yaml = get_matching_path(
                     file=source_smd,
