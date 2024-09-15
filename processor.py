@@ -164,11 +164,18 @@ class Github2Zine:
         # read content
         with open(md_path, 'rt') as f:
             content = f.read()
+        # rewrite content
         new_content = self.rewrite_content(content, md_path)
-        # read the source smd file
+
+        # read the source smd file for YAML
+        with open(smd_src_path, 'rt') as f:
+            yaml = f.read()
+
         # append the new_content to the smd content
+        new_content = f'{yaml}\n{new_content}'
+
         # smd dest path = smd_src_path in the WORKDIR
-        smd_dest_path = get_matching_path(smd_src_path, self.zine_path, self.workspace)
+        smd_dest_path = get_matching_path(smd_src_path, self.zine_path, os.path.join(self.workspace, 'content'))
 
         # create the workdir subdirs if necessary
         smd_dirs = get_dir_of(smd_dest_path)
@@ -180,7 +187,8 @@ class Github2Zine:
         self.actions.append(MergeIntoSmdAction(
             smd_dest=smd_dest_path, smd_source=smd_src_path, md_source=md_path))
         if not self.dry_run:
-            pass
+            with open(smd_dest_path, 'wt') as f:
+                f.write(new_content)
         return
 
 
@@ -272,8 +280,6 @@ class Zine2Github:
         assert relative_path.endswith('.smd')
 
     def rewrite_link(self, relative_path: str, link_text: str, target: str):
-        # Placeholder function - replace with your actual link rewriting logic
-        # For demonstration, simply showing a rewritten format
         link_url = f"[{link_text}]({relative_path}/{target})"
         self.collected_links.append(link_url)
         return link_url

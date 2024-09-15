@@ -25,17 +25,17 @@ done
 # GH browsing use, even in the content/ directory; although, I'd advise against
 # such shenanigans
 #
-# TODO: add a check that at least prints out such .md files
+# We copy the .smd files into the workspace. some of them will be filled with
+# content later.
 mkdir -p ${WORKSPACE}/content
 for i in $(find content -iname '*.smd') ; do
     SMD_FILE=$(basename $i)
-    MD_FILE=$(echo $SMD_FILE | sed 's/.smd/.md/')
     SUBDIR=$(dirname $i)
-    MD_SOURCE=zml/docs/$SUBDIR/${MD_FILE}
     SMD_SOURCE=$i
     SMD_DEST=${WORKSPACE}/${SUBDIR}/${SMD_FILE}
-
-    echo "$SMD_DEST <-- $SMD_SOURCE + $MD_SOURCE"
+    echo "$SMD_DEST <-- $SMD_SOURCE"
     mkdir -p $(dirname $SMD_DEST)
-    cat $SMD_SOURCE $MD_SOURCE > $SMD_DEST
+    cat $SMD_SOURCE > $SMD_DEST
 done
+
+python processor.py EDIT content zml/docs WORKSPACE
