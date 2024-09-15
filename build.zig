@@ -28,12 +28,16 @@ pub fn build(b: *std.Build) !void {
         .layouts_dir_path = "layouts",
         .assets_dir_path = "assets",
         .static_assets = &.{
-            "zml_api.js",
             "zml.no_light.svg",
+            // TODO: re-enable me
+            // "zml_api.js",
+
+            // TODO: remove me
+            "main.js",
+            "main.wasm",
         },
         .build_assets = &.{
-            .{ .name = "main.wasm", .lp = docs_wasm.getEmittedBin(), .install_path = "main.wasm", .install_always = true },
-            staticAsset(b, "main.js"),
+            // .{ .name = "main.wasm", .lp = docs_wasm.getEmittedBin(), .install_path = "main.wasm", .install_always = true },
             staticAsset(b, "sources.tar"),
         },
         .debug = true,

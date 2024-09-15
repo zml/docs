@@ -9,8 +9,10 @@ cd ..
 
 cp -f ./zml/sources.tar WORKSPACE/
 cp -v ./build.zig* WORKSPACE/
-curl https://ziglang.org/documentation/0.13.0/std/main.js -s -o WORKSPACE/main.js
+
 
 cd WORKSPACE
+
+
 echo "Starting Zine build..."
 zig build $@
