@@ -2,9 +2,8 @@
 
 ## REQUIREMENTS: 
 
-- python: only if you want to COMMIT changes
-- bazel : for building zig docs
-- zig : for building the docs with Zine
+- python: for translating smd <--> md
+- zig 0.13.0: for building the docs with Zine
 
 ## HOW TO EDIT WITH LIVE-PREVIEW & COMMIT DOCS
 
