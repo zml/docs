@@ -2,7 +2,7 @@ import sys
 import os
 import re
 from dataclasses import dataclass
-from typing import Union
+from typing import Union, Tuple
 from pathlib import Path
 
 
@@ -124,6 +124,32 @@ def resolve_link(md_root: str, md_file: str, relative_link: str) -> str:
     resolved_path = link_target_path.relative_to(md_root_path.resolve())
     return str(resolved_path)
 
+def create_relative_link(md_root: str, md_file: str, relative_link: str) -> str:
+    """
+    Creates a relative link for a markdown file given the root directory, the 
+    file location, and the link starting with a slash.
+    
+    Args:
+        md_root (str): The root directory of all markdown files.
+        md_file (str): The path to the markdown file containing the link.
+        relative_link (str): The link that starts with a slash (from root).
+    
+    Returns:
+        str: The resolved relative link.
+    """
+    # Ensure the relative_link starts with a slash and remove it for path operations
+    if not relative_link.startswith('/'):
+        raise ValueError("The relative_link should start with a slash ('/').")
+    # Remove the leading slash from the relative link to make it a relative path
+    link_path = relative_link.lstrip('/')
+    # Get the directory of the markdown file
+    md_file_dir = os.path.dirname(md_file)
+    # Compute the relative path from the markdown file to the root
+    relative_path_to_root = os.path.relpath(md_root, md_file_dir)
+    # Join the computed path with the link path to form the resolved link
+    resolved_link = os.path.join(relative_path_to_root, link_path)
+    return resolved_link
+
 
 class Github2Zine:
     def __init__(self, gh_path:str, zine_path:str, workspace_path:str, dry_run: bool):
@@ -145,10 +171,9 @@ class Github2Zine:
         md_sources = find_files_with_extension(self.gh_path, '.md')
         for source_md in md_sources:
             self.actions.append(ProcessingFileAction(source_file=source_md))
-            # smd_name, new_content = self.process_file(source_md)
-            # now we need to:
-            # check if the source smd file exists in the zine_path, honoring subdirs
-            smd_yaml_src = get_matching_path(source_md, self.gh_path, self.zine_path)
+            smd_yaml_src = get_matching_path(file=source_md,
+                                             strip_path=self.gh_path,
+                                             prepend_path=self.zine_path)
             smd_yaml_src = change_extension(smd_yaml_src, '.smd')
             if os.path.basename(smd_yaml_src) == 'README.smd':
                 smd_yaml_src = rename_basename(smd_yaml_src, 'index.smd')
@@ -172,6 +197,7 @@ class Github2Zine:
         # read content
         with open(md_path, 'rt') as f:
             content = f.read()
+
         # rewrite content
         new_content = self.rewrite_content(content, md_path)
 
@@ -183,7 +209,10 @@ class Github2Zine:
         new_content = f'{yaml}\n{new_content}'
 
         # smd dest path = smd_src_path in the WORKDIR
-        smd_dest_path = get_matching_path(smd_src_path, self.zine_path, os.path.join(self.workspace, 'content'))
+        smd_dest_path = get_matching_path(
+                file=smd_src_path,
+                strip_path=self.zine_path,
+                prepend_path=os.path.join(self.workspace, 'content'))
 
         # create the workdir subdirs if necessary
         smd_dirs = get_dir_of(smd_dest_path)
@@ -207,6 +236,7 @@ class Github2Zine:
             anchor = f'#{anchor}'
         else:
             anchor = ''
+
         if target and not target.endswith('.md'):
             raise ValueError(f'Link target `{target}` in {relative_path} does not point to a .md file!')
 
@@ -258,77 +288,266 @@ class Github2Zine:
                 return match.group(0)  
             else:
                 # Rewrite the link if it's not an HTTP URL
-                rewritten_link = self.rewrite_link(relative_path, link_text, target)
+                rewritten_link = self.rewrite_link(relative_path,
+                                                   link_text, target)
                 return rewritten_link
 
         def handle_image_link(match: re.Match[str]) -> str:
-            img_text = match.group(1).replace('\n', ' ')  # Replace newlines in image text with spaces
-            img_target = match.group(2).strip()  # Get the image target and strip any extra whitespace
-            # Rewrite the image link using the rewrite_image_link function
-            rewritten_image_link = self.rewrite_image_link(relative_path, img_text, img_target)
+            # Replace newlines in image text with spaces
+            img_text = match.group(1).replace('\n', ' ')
+            # Get the image target and strip any extra whitespace
+            img_target = match.group(2).strip()
+            rewritten_image_link = self.rewrite_image_link(relative_path,
+                                                           img_text,
+                                                           img_target)
             return rewritten_image_link
         
         # Replace all links in the markdown content using the handle_link function
         rewritten_content = link_pattern.sub(handle_link, markdown_content)
 
         # now the images
-        rewritten_content = image_link_pattern.sub(handle_image_link, rewritten_content)
+        rewritten_content = image_link_pattern.sub(handle_image_link,
+                                                   rewritten_content)
         return rewritten_content
 
 
 class Zine2Github:
-    def __init__(self, gh_path:str, zine_path:str, workspace_path:str):
+    def __init__(self, gh_path:str, zine_path:str, workspace_path:str, dry_run: bool):
         self.gh_path = gh_path
         self.zine_path = zine_path
         self.workspace = workspace_path
-        self.collected_links: [str] = []
+        self.dry_run = dry_run
+        self.actions: list[Action] = []
+
+        self.link_pattern = re.compile(r'(?<!\!)\[([^\]]*?)\]\(([^()]*(\([^()]*\)[^()]*)*)\)', re.DOTALL)
+        self.image_link_pattern = re.compile(r'!\[([^\]]*?)\]\(([^)]+)\)', re.DOTALL)
+        self.image_link_pattern = re.compile(r'(?<=\!)\[([^\]]*?)\]\(([^()]+(?:\([^()]*\)[^()]*)*)\)', re.DOTALL)
 
     def process(self):
         """
-        Process the entire Zine docs collection
+        Process the entire zine docs collection
         Calls process_file on all files.
+        Collects actions in `actions`.
         """
-        pass
+        # first, scan all files we need to process
+        # when we actually process, we need to make sure that a corresponding zine
+        # file exists
+        smd_sources = find_files_with_extension(self.workspace, '.smd')
+        for source_smd in smd_sources:
+            self.actions.append(ProcessingFileAction(source_file=source_smd))
+            dest_smd_yaml = get_matching_path(
+                    file=source_smd,
+                    strip_path=os.path.join(self.workspace, 'content'),
+                    prepend_path=self.zine_path)
+            dest_md = get_matching_path(
+                    file=source_smd,
+                    strip_path=os.path.join(self.workspace, 'content'),
+                    prepend_path=self.gh_path)
+            dest_md = change_extension(dest_md, '.md')
 
-    def process_file(self, md_path: str, persistent:bool=False):
+            if os.path.basename(dest_smd_yaml) == 'index.smd':
+                dest_md = rename_basename(dest_md, 'README.md')
+            if not os.path.exists(dest_md):
+                self.actions.append(IngoreFileAction(source_file=source_smd,
+                    reason=f'Matching `{dest_md}` for {source_smd} does not exist'))
+                continue
+            self.process_file(source_smd, dest_smd_yaml, dest_md)
+
+
+    def process_file(self, source_smd: str, dest_smd_yaml: str, dest_md: str):
         """
         Processes a single file:
             - rewrites links
-            - renames to appropriate .md
-            - returns both rewritten content and renamed file
+            - rewrites images
 
-        If persistent is True, the input SMD file will be split into its
-        SMD part and MD part. The md part will be written to the GH repo.
-        The SMD part will be written to the SMD file in the docs repo.
+        If self.dry_run is False, the input SMD file will be split into its
+        SMD (YAML) part and MD (content) part. The md part will be written to 
+        the GH repo. The SMD part will be written to the SMD file in the 
+        docs repo.
         """
-        pass
+        # read content
+        with open(source_smd, 'rt') as f:
+            content = f.read()
+        # rewrite content
+        new_content = self.rewrite_content(content, source_smd)
+        yaml, new_content = self.split_yaml_and_content(new_content, source_smd)
+        new_content = new_content.strip()  # makes it falsy if only empty lines
 
-    def rename_file(self, relative_path: str):
-        assert relative_path.endswith('.smd')
+        # create the smd subdirs if necessary
+        smd_dirs = get_dir_of(dest_smd_yaml)
+        if not os.path.exists(smd_dirs):
+            self.actions.append(CreateDirAction(directory=smd_dirs))
+            if not self.dry_run:
+                os.makedirs(smd_dirs, exist_ok=True)
+
+        # create the md subdirs if necessary
+        if new_content:
+            if not os.path.exists(dest_md):
+                md_dirs = get_dir_of(dest_md)
+                if not os.path.exists(md_dirs):
+                    self.actions.append(CreateDirAction(directory=md_dirs))
+                    if not self.dry_run:
+                        os.makedirs(md_dirs, exist_ok=True)
+
+        # create the workdir smd file
+        self.actions.append(SplitSmdAction(source_file=source_smd,
+                                           smd_dest=dest_smd_yaml,
+                                           md_dest=dest_md))
+        if not self.dry_run:
+            # create the YAML
+            if content:
+                # do the md part
+                pass
+
+        return
 
     def rewrite_link(self, relative_path: str, link_text: str, target: str):
-        link_url = f"[{link_text}]({relative_path}/{target})"
-        self.collected_links.append(link_url)
+        original = target
+        if '#' in target:
+            target, anchor = target.split('#', 1)
+            anchor = f'#{anchor}'
+        else:
+            anchor = ''
+
+        if original.startswith('#'):
+            # anchor-only
+            return original
+
+        if not target.startswith('/') and not target.startswith('$image'):
+            raise ValueError(f"ERROR: In {relative_path} link target {target} must be absolute path or $image.url")
+
+        # deal with $image.url('')
+        if target.startswith('$image'):
+            pattern = re.compile(r"\$image\.url\('([^']+)'\)")
+            match = pattern.search(target)
+            if not match:
+                raise ValueError(f"ERROR: In {relative_path}: expected $image.url('...') in {target}")
+            target_url = match.group(1)
+            link_url = f'![{link_text}]({target_url})'
+            self.actions.append(TranslateImageAction(source_file=relative_path,
+                                                     original=target,
+                                                     destination=target_url))
+            return link_url
+
+        if target:
+            resolved = create_relative_link(
+                    md_root=os.path.join(self.workspace, 'content'),
+                    md_file=relative_path,
+                    relative_link=target)
+            target_file = os.path.basename(resolved)
+            target_dir = os.path.dirname(resolved)
+
+            # find the target file in zine. 
+            # it might either be target + '.smd' or target + '/index.smd'
+            # whatever we have to append, we append to target_file. 
+            # but instead .smd, we append .md and instead of /index.smd, we 
+            # append /README.md or just '/'
+            search_target = target
+            if target.startswith('/'):
+                search_target = target[1:]
+            search_smd = os.path.join(self.workspace, 'content', search_target + '.smd')
+            search_index = os.path.join(self.workspace, 'content', search_target, 'index.smd')
+            print('target', target)
+            print('resolved', resolved)
+            print('target_file', target_file)
+            print('target_dir', target_dir)
+            print('searching for', search_smd)
+            if os.path.exists(search_smd):
+                # we link to an smd file
+                target_file += '.md'
+            elif os.path.exists(search_index):
+                if not target_file.endswith('/') and target_file :
+                    target_file += '/' # link to a directory
+                    # linking to directory rather than README.md is safer if the
+                    # latter doesn't exist; it will still work in GH
+
+            if target_dir:
+                target_dir = f'{target_dir}'
+            new_target = f'{target_dir}/{target_file}{anchor}'
+        else:
+            new_target = anchor
+
+        link_url = f'[{link_text}]({new_target})'
+        self.actions.append(TranslateLinkAction(source_file=relative_path,
+                                                original=original,
+                                                destination=new_target))
         return link_url
 
-    def rewrite_content(self, markdown_content:str, relative_path:str) -> str:
-        # Regex pattern to match markdown links but ignore image links (![imgtext](imglink))
-        # (also handles newlines in links)
-        link_pattern = re.compile(r'(?<!\!)\[([^\]]*?)\]\(([^)]+)\)', re.DOTALL)
+    # TODO: this is temp until loris fixes zine
+    def rewrite_image_link(self, relative_path, img_text, img_target):
+        print(relative_path, img_text, img_target)
+        assert False, "There shouldn't be any ![image](links) until zine is fixed"
+        # new_target = f"[{img_text}]($image.url('{img_target}'))"
+        # self.actions.append(TranslateImageAction(source_file=relative_path,
+        #                                         original=img_target,
+        #                                         destination=new_target))
+        # return new_target
 
+    def rewrite_content(self, markdown_content:str, relative_path:str) -> str:
+        """
+        - rewrites markdown links
+        - but ignores image links ![imgtext](imglink)
+        - also handles newlines in links
+        """
+    
         def handle_link(match: re.Match[str]) -> str:
+            # Replace newlines in link text with spaces
             link_text = match.group(1).replace('\n', ' ')
-            target = match.group(2).strip()
+            # Get the link target and strip any extra whitespace
+            target = match.group(2).strip()  
             if target.startswith('http'):
-                return match.group(0)  # Return original link if it's a web URL
+                # Return the original link if it's a web URL
+                return match.group(0)  
             else:
                 # Rewrite the link if it's not an HTTP URL
-                rewritten_link = rewrite_link(self, relative_path, link_text, target)
+                rewritten_link = self.rewrite_link(relative_path, link_text, target)
                 return rewritten_link
+
+        def handle_image_link(match: re.Match[str]) -> str:
+            print("*******")
+            print(match.group(0))
+            img_text = match.group(1).replace('\n', ' ')
+            # Get the image target and strip any extra whitespace
+            img_target = match.group(2).strip()
+            # Rewrite the image link using the rewrite_image_link function
+            rewritten_image_link = self.rewrite_image_link(relative_path,
+                                                           img_text, img_target)
+            return rewritten_image_link
         
-        # Replace all links in the md content using the handle_link function
-        rewritten_content = link_pattern.sub(handle_link, markdown_content)
+        # do the image links first, because handle_link creates some
+        rewritten_content = self.image_link_pattern.sub(handle_image_link, markdown_content)
+        # Replace all links in the markdown content using the handle_link function
+        rewritten_content = self.link_pattern.sub(handle_link, rewritten_content)
+        # now the images
         return rewritten_content
+
+    def split_yaml_and_content(self, content: str, smd_src_file: str) -> Tuple[str, str]:
+        """
+        Takes the content, splits it into the YAML section and the content 
+        section, and then returns the two: yaml, content in a tuple
+        """
+        _ = self
+        lines_smd = []
+        lines_md = []
+        seen_first_sep = False
+        seen_second_sep = False
+        for line in content.split('\n'):
+            if seen_second_sep:
+                lines_md.append(line)
+            else:
+                lines_smd.append(line)
+                if line.strip() == '---':
+                    if seen_first_sep:
+                        seen_second_sep = True
+                    else:
+                        seen_first_sep = True
+        if not lines_smd:
+            raise RuntimeError(f"ERROR: did not produce any YAML lines for {smd_src_file}")
+        yaml = '\n'.join(lines_smd)
+        content = '\n'.join(lines_md)
+        return yaml, content
+
+
 
 
 def usage_and_exit():
