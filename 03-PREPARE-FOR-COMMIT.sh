@@ -11,15 +11,7 @@ if ! python --version > /dev/null 2>&1  ; then
     exit 1
 fi
 
-for i in $(find ${WORKSPACE}/content -iname '*.smd') ; do
-    SMD_FILE=$(basename $i)
-    MD_FILE=$(echo $SMD_FILE | sed 's/.smd/.md/')
-    SUBDIR=$(echo $(dirname $i) | sed "s/$WORKSPACE\///")
-    MD_DEST=zml/docs/$SUBDIR/$MD_FILE
-    SMD_DEST=./$SUBDIR/$SMD_FILE
-    echo "$i -> $SMD_DEST + $MD_DEST"
-    python split.py $i $SMD_DEST $MD_DEST
-done
+python processor.py COMMIT content zml/docs WORKSPACE
 
 echo ""
 echo ""
