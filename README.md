@@ -18,7 +18,33 @@ Now, you can edit all `.smd` files, as well as `.shtml` layouts, assets in `./WO
 
 ### ^^^ YOU EDIT IN ./WORKSPACE !!!
 
-When you're done editing, run:
+### HOWTO Links
+
+Only ever use the following link notation to link to other docs:
+
+```markdown
+[blah][/folder/doc]  # no extension, start with /
+[back to the root index](/)
+[some tutorial](/tutorials/foo)
+```
+
+
+### HOWTO Images
+
+Until Zine is fixed (Loris is working on it), use the following notation for
+images:
+
+```markdown
+[blah]($image.url('https://zml.ai/docs-assets/image.png'))
+```
+
+Once it is fixed, normal image urls, starting with `https://` will work again.
+From then on, we can disable image-link-translation.
+
+
+## COMMITTING
+
+When you're done editing, run in the root dir of this repo:
 
 ```console
 ./03-PREPARE-FOR-COMMIT.sh
@@ -96,7 +122,7 @@ such shenanigans.
 
 This repository contains a collection of bash and python scripts. For python,
 having the Python LSP running is recommended. For that reason, an environment
-`env` is provided that contains the LSP.
+`env` is provided that provides the LSP.
 
 To create the environment:
 
