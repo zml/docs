@@ -464,7 +464,7 @@ class Zine2Github:
                 target_file += '.md'
             elif os.path.exists(search_index):
                 if not target_file.endswith('/') and target_file :
-                    target_file += '/' # link to a directory
+                    target_file += '/README.md' # link to a directory
                     # linking to directory rather than README.md is safer if the
                     # latter doesn't exist; it will still work in GH
 
