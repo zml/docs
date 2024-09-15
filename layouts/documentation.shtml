@@ -48,6 +48,6 @@
     }
   </style>
   <h3 class="centered"></h3>
-  <h1 :text="$page.title"></h1>
+  <!-- <h1 :text="$page.title"></h1> -->
   <div id="docs" :html="$page.content()"></div>
 </div>
