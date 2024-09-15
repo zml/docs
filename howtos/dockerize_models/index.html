@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+  <head id="head">
+    <meta charset="UTF-8">
+    <!-- <meta name="description" content="Zine: Fast, Scalable and Flexible Static Site Generator"> -->
+    <!-- <meta name="twitter:card" content="summary"> -->
+    <!-- <meta name="twitter:site" content="@croloris"> -->
+    <!-- <meta name="twitter:author" content="@croloris"> -->
+    <!-- <meta name="twitter:description" content="Zine: Fast, Scalable and Flexible Static Site Generator"> -->
+    <!-- <meta name="twitter:title" content="$page.title.suffix(' | Zine')"> -->
+    <meta property="og:title" content="Dockerize a Model">
+    <meta property="og:type" content="website">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title id="title">
+      Dockerize a Model
+      - ZML
+    </title>
+    <link rel="stylesheet" type="text/css" href="/fonts.css">
+    <link rel="stylesheet" type="text/css" href="/fira_code.css">
+    <link rel="stylesheet" type="text/css" href="/style.css">
+    <link rel="stylesheet" type="text/css" href="/highlight.css">
+    <link rel="icon" href="/zml.no_light.svg">
+    
+  </head>
+  <body>
+    <a id="logo" href="/"></a>
+    <nav id="menu">
+      <a href="/">Home</a>
+      •
+      <a href="/tutorials/getting_started/">Quickstart</a>
+      •
+      <a href="/tutorials/write_first_model/">First Steps</a>
+      <!-- • -->
+      <!-- <a href="$site.page('concepts').link()">Concepts</a> -->
+      <!-- • -->
+      <!-- <a href="$site.page('using_zml_in_own_projects').link()">Using it in projects</a> -->
+      •
+      <a href="/misc/zml_api/" target="_blank">API Docs</a>
+      •
+      <a href="https://github.com/zml/zml" target="_blank">Code</a>
+      •
+      <a href="https://discord.gg/6y72SN2E7H" target="_blank">Discord</a>
+    </nav>
+    <!-- <hr style="width:min(600px, 100vw); border-color:#0798b3; color: white; border-top:1px;"> -->
+    <aside id="sidebar" class="sidebar">
+        <!-- <h3>Docs</h3> -->
+        <a href="/tutorials/"><h5>Tutorials</h5></a>
+        <div class="linkbox">
+            <div><a href="/tutorials/getting_started/">Getting Started with ZML</a></div>
+        
+            <div><a href="/tutorials/write_first_model/">Writing your first model</a></div>
+        
+            <div><a href="/tutorials/working_with_tensors/">Simplifying Dimension Handling with Tagged Tensors</a></div>
+        </div>
+        <a href="/howtos/"><h5>How-Tos</h5></a>
+        <div class="linkbox">
+            <div><a href="/howtos/huggingface_access_token/">Huggingface Token Authentication</a></div>
+        
+            <div><a href="/howtos/dockerize_models/">Dockerize a Model</a></div>
+        
+            <div><a href="/howtos/deploy_on_server/">Deploying Models on a Server</a></div>
+        
+            <div><a href="/howtos/howto_torch2zml/">How to port Pytorch models to ZML ?</a></div>
+        
+            <div><a href="/howtos/add_weights/">Adding Weights Files</a></div>
+        </div>
+        <a href="/tutorials/"><h5>Learn more</h5></a>
+        <div class="linkbox">
+            <div><a href="/learn/concepts/">ZML Concepts</a></div>
+        </div>
+        <a href="/tutorials/"><h5>Misc</h5></a>
+        <div class="linkbox">
+            <div><a href="/misc/style_guide/">ZML Style Guide</a></div>
+        
+            <div><a href="/misc/zml_api/">API Docs</a></div>
+        
+            <div><a href="/misc/CHANGELOG/">ZML Changelog</a></div>
+        </div>
+    </aside>
+
+    <main>
+        <div id="content">
+  <style>
+    h1 {
+       margin-top: 0;
+     }
+
+		#docs h2, #docs h3 {
+			text-align: left;
+		}
+
+		#docs h3 {
+			font-size: 1.2rem;
+		}
+
+		#docs h3::before {
+      content: "##";
+      font-size: 1rem;
+      padding-right: 4px;
+      margin-bottom: 0;
+    }
+
+    #docs h2 {
+      font-size: 1.5rem;
+      border-bottom: 1px dashed #aaa;
+    }
+
+    #docs h2::before {
+      content: "#";
+      font-size: 1rem;
+      padding-right: 4px;
+    }
+
+    #docs h4 {
+      font-size: 1rem;
+    }
+
+    table {
+      font-size: 0.9em;
+    }
+    table th {
+      font-size: 1em;
+    }
+    table td {
+      white-space: nowrap;
+    }
+  </style>
+  <h3 class="centered"></h3>
+  <!-- <h1 :text="$page.title"></h1> -->
+  <div id="docs"><h1>Dockerize a Model</h1><p>A convenient way of <a href="/howtos/deploy_on_server/">deploying a model</a> is packaging your model up in a Docker container. Thanks to bazel, this is really easy. You just have to append a few lines to your model's <code>BUILD.bazel</code>.</p><p>Let's try it with our <a href="/tutorials/write_first_model/">first model</a>, as it doesn't need any additional weights files. We'll see <a href="#adding-weights-and-data">down below</a> how to add those. You'll also see how to add GPU/TPU support for your container there.</p><p>The steps required are:</p><ol><li>let bazel create a MANIFEST for the tar file to come</li><li>let bazel create a TAR archive of everything needed for the model to run<ul><li>see also: <a href="/howtos/deploy_on_server/">Deploying Models on a Server</a>, where we prepare a TAR file, and copy it to and run it on a remote GPU server.</li></ul></li><li>let bazel create an OCI image for Linux X86_64</li><li>let bazel push the image straight to the Docker registry</li><li><a href="#adding-weights-and-data">(add weights and data, GPU/TPU support)</a></li></ol><p><strong>Note:</strong> every TAR archive we create (one in this example) becomes its own layer in the OCI image.</p><h2>Dockerizing our first model</h2><p>We need to add a few "imports" at the beginning of our <code>BUILD.bazel</code> so we can use their rules to define our 4 additional targets:</p><pre><code class="python"><span class="function">load</span>(<span class="string">&quot;@aspect_bazel_lib//lib:tar.bzl&quot;</span>, <span class="string">&quot;mtree_spec&quot;</span>, <span class="string">&quot;tar&quot;</span>)
+<span class="function">load</span>(<span class="string">&quot;@aspect_bazel_lib//lib:transitions.bzl&quot;</span>, <span class="string">&quot;platform_transition_filegroup&quot;</span>)
+<span class="function">load</span>(<span class="string">&quot;@rules_oci//oci:defs.bzl&quot;</span>, <span class="string">&quot;oci_image&quot;</span>, <span class="string">&quot;oci_push&quot;</span>)
+
+<span class="function">zig_cc_binary</span>(
+    <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;simple_layer&quot;</span>,
+    <span class="variable">main</span> <span class="operator">=</span> <span class="string">&quot;main.zig&quot;</span>,
+    <span class="variable">deps</span> <span class="operator">=</span> [
+        <span class="string">&quot;@zml//async&quot;</span>,
+        <span class="string">&quot;@zml//zml&quot;</span>,
+    ],
+)
+</code></pre>
+<h3>1. The Manifest</h3><p>Now, let's make bazel generate a manifest that will be used when creating the TAR archive.</p><pre><code class="python"><span class="comment"># Manifest created from the simple_layer binary and friends</span>
+<span class="function">mtree_spec</span>(
+    <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;mtree&quot;</span>,
+    <span class="variable">srcs</span> <span class="operator">=</span> [<span class="string">&quot;:simple_layer&quot;</span>],
+)
+</code></pre>
+<p>It is as easy as that: we define that we want everything needed for our binary to be included in the manifest.</p><h3>2. The TAR</h3><p>Creating the TAR archive is equally easy; it's just a few more lines of bazel:</p><pre><code class="python"><span class="comment"># Create a tar archive from the above manifest</span>
+<span class="function">tar</span>(
+    <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;archive&quot;</span>,
+    <span class="variable">srcs</span> <span class="operator">=</span> [<span class="string">&quot;:simple_layer&quot;</span>],
+    <span class="variable">args</span> <span class="operator">=</span> [
+        <span class="string">&quot;--options&quot;</span>,
+        <span class="string">&quot;zstd:compression-level=9&quot;</span>,
+    ],
+    <span class="variable">compress</span> <span class="operator">=</span> <span class="string">&quot;zstd&quot;</span>,
+    <span class="variable">mtree</span> <span class="operator">=</span> <span class="string">&quot;:mtree&quot;</span>,
+)
+</code></pre>
+<p>Note that we specify high <code>zstd</code> compression, which serves two purposes: avoiding large TAR files, and also: creating TAR files that are quick to extract.</p><h3>3. The Image</h3><p>Creating the actual image is a two-step process:</p><ul><li>First, we use a rule that creates an OCI image. But we're not done yet.</li><li>Second, we force the actual OCI image to be for <code>Linux X86_64</code> always, regardless of the host we're building the image on.</li></ul><pre><code class="python"><span class="comment"># The actual docker image, with entrypoint, created from tar archive</span>
+<span class="function">oci_image</span>(
+    <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;image_&quot;</span>,
+    <span class="variable">base</span> <span class="operator">=</span> <span class="string">&quot;@distroless_cc_debian12&quot;</span>,
+    <span class="variable">entrypoint</span> <span class="operator">=</span> [<span class="string">&quot;./{}/simple_layer&quot;</span>.<span class="function method">format</span>(<span class="function">package_name</span>())],
+    <span class="variable">tars</span> <span class="operator">=</span> [<span class="string">&quot;:archive&quot;</span>],
+)
+</code></pre>
+<p>See how we use string interpolation to fill in the folder name for the container's entrypoint?</p><p>Next, we use a transition rule to force the container to be for Linux X86_64:</p><pre><code class="python"><span class="comment"># We always want to create the image for Linux</span>
+<span class="function">platform_transition_filegroup</span>(
+    <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;image&quot;</span>,
+    <span class="variable">srcs</span> <span class="operator">=</span> [<span class="string">&quot;:image_&quot;</span>],
+    <span class="variable">target_platform</span> <span class="operator">=</span> <span class="string">&quot;@zml//platforms:linux_amd64&quot;</span>,
+)
+</code></pre>
+<p>And that's almost it! You can already build the image:</p><pre><code># cd examples
+bazel build -c opt //simple_layer:image
+
+INFO: Analyzed target //simple_layer:image (1 packages loaded, 8 targets configured).
+INFO: Found 1 target...
+Target //simple_layer:image up-to-date:
+  bazel-out/k8-dbg-ST-f832ad0148ae/bin/simple_layer/image_
+INFO: Elapsed time: 0.279s, Critical Path: 0.00s
+INFO: 1 process: 1 internal.
+INFO: Build completed successfully, 1 total action
+</code></pre><p>... and inspect <code>./bazel-out</code>. Bazel tells you the exact path to the <code>image_</code>.</p><h3>4. The Push</h3><p>We just need to add one more target to the build file before we can push the image to the container registry:</p><pre><code># Bazel target for pushing the Linux image to the docker registry
+oci_push(
+    name = &quot;push&quot;,
+    image = &quot;:image&quot;,
+    remote_tags = [&quot;latest&quot;],
+    # override with -- --repository foo.bar/org/image
+    repository = &quot;index.docker.io/renerocksai/simple_layer&quot;,
+)
+</code></pre><p>This will push the <code>simple_layer</code> image with the tag <code>latest</code> (you can add more) to the docker registry:</p><pre><code>bazel run -c opt //simple_layer:push
+</code></pre><p>When dealing with maybe a public and a private container registry - or if you just want to try it out <strong>right now</strong>, you can always override the repository on the command line:</p><pre><code>bazel run -c opt //simple_layer:push -- --repository my.server.com/org/image
+</code></pre><h2>Adding weights and data</h2><p>Dockerizing a model that doesn't need any weights was easy. But what if you want to create a complete care-free package of a model plus all required weights and supporting files?</p><p>We'll use the <a href="https://github.com/zml/zml/tree/master/examples/mnist" target="_blank">MNIST example</a> to illustrate how to build Docker images that also contain data files.</p><p>You can <code>bazel run -c opt //mnist:push -- --repository index.docker.io/my_org/zml_mnist</code> in the <code>./examples</code> folder if you want to try it out.</p><p><strong>Note: Please add one more of the following parameters to specify all the platforms your containerized model should support.</strong></p><ul><li>NVIDIA CUDA: <code>--@zml//runtimes:cuda=true</code></li><li>AMD RoCM: <code>--@zml//runtimes:rocm=true</code></li><li>Google TPU: <code>--@zml//runtimes:tpu=true</code></li><li><strong>AVOID CPU:</strong> <code>--@zml//runtimes:cpu=false</code></li></ul><p><strong>Example:</strong></p><pre><code>bazel run //mnist:push -c opt --@zml//runtimes:cuda=true -- --repository index.docker.io/my_org/zml_mnist
+</code></pre><h3>Manifest and Archive</h3><p>We only add one more target to the <code>BUILD.bazel</code> to construct the commandline for the <code>entrypoint</code> of the container. All other steps basically remain the same.</p><p>Let's start with creating the manifest and archive:</p><pre><code class="python"><span class="function">load</span>(<span class="string">&quot;@aspect_bazel_lib//lib:expand_template.bzl&quot;</span>, <span class="string">&quot;expand_template&quot;</span>)
+<span class="function">load</span>(<span class="string">&quot;@aspect_bazel_lib//lib:tar.bzl&quot;</span>, <span class="string">&quot;mtree_spec&quot;</span>, <span class="string">&quot;tar&quot;</span>)
+<span class="function">load</span>(<span class="string">&quot;@aspect_bazel_lib//lib:transitions.bzl&quot;</span>, <span class="string">&quot;platform_transition_filegroup&quot;</span>)
+<span class="function">load</span>(<span class="string">&quot;@rules_oci//oci:defs.bzl&quot;</span>, <span class="string">&quot;oci_image&quot;</span>, <span class="string">&quot;oci_push&quot;</span>)
+<span class="function">load</span>(<span class="string">&quot;@zml//bazel:zig.bzl&quot;</span>, <span class="string">&quot;zig_cc_binary&quot;</span>)
+
+<span class="comment"># The executable</span>
+<span class="function">zig_cc_binary</span>(
+    <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;mnist&quot;</span>,
+    <span class="variable">args</span> <span class="operator">=</span> [
+        <span class="string">&quot;$(location @com_github_ggerganov_ggml_mnist//file)&quot;</span>,
+        <span class="string">&quot;$(location @com_github_ggerganov_ggml_mnist_data//file)&quot;</span>,
+    ],
+    <span class="variable">data</span> <span class="operator">=</span> [
+        <span class="string">&quot;@com_github_ggerganov_ggml_mnist//file&quot;</span>,
+        <span class="string">&quot;@com_github_ggerganov_ggml_mnist_data//file&quot;</span>,
+    ],
+    <span class="variable">main</span> <span class="operator">=</span> <span class="string">&quot;mnist.zig&quot;</span>,
+    <span class="variable">deps</span> <span class="operator">=</span> [
+        <span class="string">&quot;@zml//async&quot;</span>,
+        <span class="string">&quot;@zml//zml&quot;</span>,
+    ],
+)
+
+<span class="comment"># Manifest created from the executable (incl. its data:  weights and dataset)</span>
+<span class="function">mtree_spec</span>(
+    <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;mtree&quot;</span>,
+    <span class="variable">srcs</span> <span class="operator">=</span> [<span class="string">&quot;:mnist&quot;</span>],
+)
+
+<span class="comment"># Create a tar archive from the above manifest</span>
+<span class="function">tar</span>(
+    <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;archive&quot;</span>,
+    <span class="variable">srcs</span> <span class="operator">=</span> [<span class="string">&quot;:mnist&quot;</span>],
+    <span class="variable">args</span> <span class="operator">=</span> [
+        <span class="string">&quot;--options&quot;</span>,
+        <span class="string">&quot;zstd:compression-level=9&quot;</span>,
+    ],
+    <span class="variable">compress</span> <span class="operator">=</span> <span class="string">&quot;zstd&quot;</span>,
+    <span class="variable">mtree</span> <span class="operator">=</span> <span class="string">&quot;:mtree&quot;</span>,
+)
+</code></pre>
+<h3>Entrypoint</h3><p>Our container entrypoint commandline is not just the name of the executable anymore, as we need to pass the weights file and the test dataset to MNIST. A simple string interpolation will not be enough.</p><p>For this reason, we use the <code>expand_template</code> rule, like this:</p><pre><code class="python"><span class="comment"># A convenience template for creating the &quot;command line&quot; for the entrypoint</span>
+<span class="function">expand_template</span>(
+    <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;entrypoint&quot;</span>,
+    <span class="variable">data</span> <span class="operator">=</span> [
+        <span class="string">&quot;:mnist&quot;</span>,
+        <span class="string">&quot;@com_github_ggerganov_ggml_mnist//file&quot;</span>,
+        <span class="string">&quot;@com_github_ggerganov_ggml_mnist_data//file&quot;</span>,
+    ],
+    <span class="variable">substitutions</span> <span class="operator">=</span> {
+        <span class="string">&quot;:model&quot;</span>: <span class="string">&quot;$(rlocationpath @com_github_ggerganov_ggml_mnist//file)&quot;</span>,
+        <span class="string">&quot;:data&quot;</span>: <span class="string">&quot;$(rlocationpath @com_github_ggerganov_ggml_mnist_data//file)&quot;</span>,
+    },
+    <span class="variable">template</span> <span class="operator">=</span> [
+        <span class="string">&quot;./{}/mnist&quot;</span>.<span class="function method">format</span>(<span class="function">package_name</span>()),
+        <span class="string">&quot;mnist.runfiles/:model&quot;</span>,
+        <span class="string">&quot;mnist.runfiles/:data&quot;</span>,
+    ],
+)
+</code></pre>
+<ul><li><code>data</code>, which is identical to <code>data</code> in the <code>mnist</code> target used for running the model, tells bazel which files are needed.</li><li>in <code>substitutions</code> we define what <code>:model</code> and <code>:data</code> need to be replaced with</li><li>in <code>template</code>, we construct the actual entrypoint conmandline</li></ul><h3>Image, Push</h3><p>From here on, everything is analog to the <code>simple_layer</code> example, with one exception: in the <code>image_</code> target, we don't fill in the <code>entrypoint</code> directly, but use the expanded template, which we conveniently named <code>entrypoint</code> above.</p><pre><code class="python">
+<span class="comment"># The actual docker image, with entrypoint, created from tar archive</span>
+<span class="function">oci_image</span>(
+    <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;image_&quot;</span>,
+    <span class="variable">base</span> <span class="operator">=</span> <span class="string">&quot;@distroless_cc_debian12&quot;</span>,
+    <span class="comment"># the entrypoint comes from the expand_template rule `entrypoint` above</span>
+    <span class="variable">entrypoint</span> <span class="operator">=</span> <span class="string">&quot;:entrypoint&quot;</span>, 
+    <span class="variable">tars</span> <span class="operator">=</span> [<span class="string">&quot;:archive&quot;</span>],
+)
+
+<span class="comment"># We always want to create the image for Linux</span>
+<span class="function">platform_transition_filegroup</span>(
+    <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;image&quot;</span>,
+    <span class="variable">srcs</span> <span class="operator">=</span> [<span class="string">&quot;:image_&quot;</span>],
+    <span class="variable">target_platform</span> <span class="operator">=</span> <span class="string">&quot;@zml//platforms:linux_amd64&quot;</span>,
+)
+
+<span class="comment"># Bazel target for pushing the Linux image to our docker registry</span>
+<span class="function">oci_push</span>(
+    <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;push&quot;</span>,
+    <span class="variable">image</span> <span class="operator">=</span> <span class="string">&quot;:image&quot;</span>,
+    <span class="variable">remote_tags</span> <span class="operator">=</span> [<span class="string">&quot;latest&quot;</span>],
+    <span class="comment"># override with -- --repository foo.bar/org/image</span>
+    <span class="variable">repository</span> <span class="operator">=</span> <span class="string">&quot;index.docker.io/steeve/mnist&quot;</span>,
+)
+</code></pre>
+<p>And that's it! With one simple bazel command, you can push a neatly packaged MNIST model, including weights and dataset, to the docker registry:</p><pre><code>bazel run //mnist:push --@zml//runtimes:cuda=true -- --repository index.docker.io/my_org/zml_mnist
+</code></pre></div>
+</div>
+    </main>
+
+
+    <footer>
+        <!-- OPTION 1: with Zine -->
+        <b>&copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> </b> — <i>made with <a href="https://zine-ssg.io" target="_blank">Zine</a></i>
+
+        <!-- OPTION 2: ZML only -->
+        <!-- &copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> -->
+    </footer>
+  </body>
+</html>

@@ -57,7 +57,7 @@
         <div class="linkbox">
             <div><a href="/howtos/huggingface_access_token/">Huggingface Token Authentication</a></div>
         
-            <div><a href="/howtos/using_zml_in_own_projects/">Using ZML in your own projects</a></div>
+            <div><a href="/howtos/dockerize_models/">Dockerize a Model</a></div>
         
             <div><a href="/howtos/deploy_on_server/">Deploying Models on a Server</a></div>
         
@@ -127,22 +127,13 @@
     }
   </style>
   <h3 class="centered"></h3>
-  <h1>Getting Started with ZML</h1>
-  <div id="docs"><p>In this tutorial, we will install <code>ZML</code>, and run a few models locally.</p><h2>Prerequisites</h2><p>First let's checkout the ZML codebase. In a terminal run:</p><pre><code>git clone https://github.com/zml/zml.git
+  <!-- <h1 :text="$page.title"></h1> -->
+  <div id="docs"><h1>Getting Started with ZML</h1><p>In this tutorial, we will install <code>ZML</code>, and run a few models locally.</p><h2>Prerequisites</h2><p>First let's checkout the ZML codebase. In a terminal run:</p><pre><code>git clone https://github.com/zml/zml.git
 cd zml/
-</code></pre><p>We use <code>bazel</code> to build ZML and its dependencies. We recommend to download it through <code>bazelisk</code>, a version manager for <code>bazel</code>.</p><p><strong>Install Bazel:</strong></p><details><summary>macOS</summary>
-<pre>
-    brew install bazelisk
-</pre>
-</details>
-
-<details><summary>Linux</summary>
-<pre>
-curl -L -o /usr/local/bin/bazel 'https://github.com/bazelbuild/bazelisk/releases/download/v1.18.0/bazelisk-linux-amd64'
-chmod +x /usr/local/bin/bazel
-</pre>
-</details>
-<h2>Run a pre-packaged model</h2><p>ZML comes with a variety of model examples. See also our reference implementations in the <a href="https://github.com/zml/zml/tree/master/models/" target="_blank">models</a> folder.</p><h3>MNIST</h3><p>The <a href="https://en.wikipedia.org/wiki/MNIST_database" target="_blank">classic</a> handwritten digits recognition task. The model is tasked to recognized a hand written digit, which has been converted to a 28x28 pixel mono-color image. <code>Bazel</code> will download a pretrained model, and the test dataset. The program will load the model, compile it, and classify examples from the test dataset in random order.</p><p>On the command line:</p><pre><code>cd examples
+</code></pre><p>We use <code>bazel</code> to build ZML and its dependencies. We recommend to download it through <code>bazelisk</code>, a version manager for <code>bazel</code>.</p><h3>Install Bazel:</h3><p><strong>macOs:</strong></p><pre><code>    brew install bazelisk
+</code></pre><p><strong>Linux:</strong></p><pre><code>    curl -L -o /usr/local/bin/bazel &apos;https://github.com/bazelbuild/bazelisk/releases/download/v1.20.0/bazelisk-linux-amd64&apos;
+    chmod +x /usr/local/bin/bazel
+</code></pre><h2>Run a pre-packaged model</h2><p>ZML comes with a variety of model examples. See also our reference implementations in the <a href="https://github.com/zml/zml/tree/master/examples/" target="_blank">examples</a> folder.</p><h3>MNIST</h3><p>The <a href="https://en.wikipedia.org/wiki/MNIST_database" target="_blank">classic</a> handwritten digits recognition task. The model is tasked to recognized a hand written digit, which has been converted to a 28x28 pixel mono-color image. <code>Bazel</code> will download a pretrained model, and the test dataset. The program will load the model, compile it, and classify examples from the test dataset in random order.</p><p>On the command line:</p><pre><code>cd examples
 bazel run -c opt //mnist
 </code></pre><p>Press <code>Ctrl+C</code> to interrupt the program.</p><h3>Llama</h3><p>Llama is a family of "Large Language Models", trained to generate text, based on the beginning of a sentence/book/article. This "beginning" is generally referred as the "prompt".</p><h4>TinyLlama, Stories 15M</h4><p>To start, you can use a small model trained specifically on children's history books. This model has been trained by <a href="https://x.com/karpathy" target="_blank">Andrej Karpathy</a>; you can read more on his <a href="https://github.com/karpathy/llama2.c" target="_blank">Github</a>.</p><pre><code>cd examples
 bazel run -c opt //llama:TinyLlama-Stories-15M
@@ -154,13 +145,12 @@ bazel run -c opt //llama:OpenLLaMA-3B -- --prompt=&quot;Once upon a time,&quot;
 cd examples
 bazel run -c opt //llama:Meta-Llama-3-8b
 bazel run -c opt //llama:Meta-Llama-3-8b -- --promt=&quot;Once upon a time,&quot;
-</code></pre><h2>Run Tests</h2><pre><code>bazel test //zml:test # (full test suite)
-bazel test //zml:core # (pure Zig test suite)
-</code></pre><div id=running-on-accelerator><h2><a class="" href="#running-on-accelerator">Running Models on GPU / TPU</a></h2><p>You can compile models for accelerator runtimes by appending one or more of the following arguments to the command line when compiling / running a model:</p><ul><li>NVIDIA CUDA: <code>--@zml//runtimes:cuda=true</code></li><li>AMD RoCM: <code>--@zml//runtimes:rocm=true</code></li><li>Google TPU: <code>--@zml//runtimes:tpu=true</code></li><li><strong>AVOID CPU:</strong> <code>--@zml//runtimes:cpu=false</code></li></ul><p>The latter, avoiding compilation for CPU, cuts down compilation time.</p><p>So, to run the OpenLLama model from above on your host sporting an NVIDIA GPU, run the following:</p><pre><code>cd examples
-bazel run -c opt //llama:OpenLLaMA-3B        \
+</code></pre><h2>Run Tests</h2><pre><code>bazel test //zml:test
+</code></pre><h2>Running Models on GPU / TPU</h2><p>You can compile models for accelerator runtimes by appending one or more of the following arguments to the command line when compiling / running a model:</p><ul><li>NVIDIA CUDA: <code>--@zml//runtimes:cuda=true</code></li><li>AMD RoCM: <code>--@zml//runtimes:rocm=true</code></li><li>Google TPU: <code>--@zml//runtimes:tpu=true</code></li><li><strong>AVOID CPU:</strong> <code>--@zml//runtimes:cpu=false</code></li></ul><p>The latter, avoiding compilation for CPU, cuts down compilation time.</p><p>So, to run the OpenLLama model from above on your host sporting an NVIDIA GPU, run the following:</p><pre><code>cd examples
+bazel run -c opt //llama:OpenLLaMA-3B             \
           --@zml//runtimes:cuda=true              \
           -- --prompt=&quot;Once upon a time,&quot;
-</code></pre><h2>Where to go next:</h2><p>In <a href="/howtos/deploy_on_server/">Deploying Models on a Server</a>, we show how you can cross-compile and package for a specific architecture, then deploy and run your model.</p><p>You might also want to check out more <a href="https://github.com/zml/zml/tree/master/examples" target="_blank">examples</a> or read through the documentation. Try starting with <a href="/tutorials/write_first_model/">Writing your first model</a>, which explains the high-level <a href="/learn/concepts/">ZML concepts</a>, or go straight to <a href="/howtos/using_zml_in_own_projects/">using ZML in your own projects</a>.</p></div></div>
+</code></pre><h2>Where to go next:</h2><p>In <a href="/howtos/deploy_on_server/">Deploying Models on a Server</a>, we show how you can cross-compile and package for a specific architecture, then deploy and run your model.</p><p>You might also want to check out the <a href="https://github.com/zml/zml/tree/master/examples" target="_blank">examples</a>, read through the <a href="/">documentation</a>, start <a href="/tutorials/write_first_model/">Writing your first model</a>, or read about more high-level <a href="/learn/concepts/">ZML concepts</a>.</p></div>
 </div>
     </main>
 

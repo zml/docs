@@ -57,7 +57,7 @@
         <div class="linkbox">
             <div><a href="/howtos/huggingface_access_token/">Huggingface Token Authentication</a></div>
         
-            <div><a href="/howtos/using_zml_in_own_projects/">Using ZML in your own projects</a></div>
+            <div><a href="/howtos/dockerize_models/">Dockerize a Model</a></div>
         
             <div><a href="/howtos/deploy_on_server/">Deploying Models on a Server</a></div>
         
@@ -127,8 +127,8 @@
     }
   </style>
   <h3 class="centered"></h3>
-  <h1>ZML Style Guide</h1>
-  <div id="docs"><p>We prefer to keep it simple and adhere to the <a href="https://ziglang.org/documentation/0.13.0/#Style-Guide" target="_blank">Zig Style Guide</a>.</p><p>We use ZLS to auto-format code.</p><p>In addition, we try to adhere to the following house-rules:</p><h3>We favor:</h3><pre><code class="zig"><span class="type qualifier">const</span> <span class="variable">x</span><span class="punctuation delimiter">:</span> <span class="variable">Foo</span> = <span class="punctuation delimiter">.</span><span class="punctuation bracket">{</span> <span class="punctuation delimiter">.</span><span class="field">bar</span> = <span class="number">1</span> <span class="punctuation bracket">}</span> 
+  <!-- <h1 :text="$page.title"></h1> -->
+  <div id="docs"><h1>ZML Style Guide</h1><p>We prefer to keep it simple and adhere to the <a href="https://ziglang.org/documentation/0.13.0/#Style-Guide" target="_blank">Zig Style Guide</a>.</p><p>We use ZLS to auto-format code.</p><p>In addition, we try to adhere to the following house-rules:</p><h3>We favor:</h3><pre><code class="zig"><span class="type qualifier">const</span> <span class="variable">x</span><span class="punctuation delimiter">:</span> <span class="variable">Foo</span> = <span class="punctuation delimiter">.</span><span class="punctuation bracket">{</span> <span class="punctuation delimiter">.</span><span class="field">bar</span> = <span class="number">1</span> <span class="punctuation bracket">}</span> 
 <span class="comment">// over: const x = Foo{ .bar = 1}</span><span class="punctuation delimiter"></span>
 
 <span class="attribute">pub</span> <span class="keyword function">fn</span> <span class="function">method</span><span class="punctuation bracket">(</span><span class="parameter">self</span><span class="punctuation delimiter">:</span> <span class="variable">Foo</span><span class="punctuation bracket">)</span> <span class="type builtin">void</span>

@@ -57,7 +57,7 @@
         <div class="linkbox">
             <div><a href="/howtos/huggingface_access_token/">Huggingface Token Authentication</a></div>
         
-            <div><a href="/howtos/using_zml_in_own_projects/">Using ZML in your own projects</a></div>
+            <div><a href="/howtos/dockerize_models/">Dockerize a Model</a></div>
         
             <div><a href="/howtos/deploy_on_server/">Deploying Models on a Server</a></div>
         
@@ -127,10 +127,10 @@
     }
   </style>
   <h3 class="centered"></h3>
-  <h1>Deploying Models on a Server</h1>
-  <div id="docs"><p>To run models on remote GPU/TPU machines, it is not convenient having to check out the ZML or your project's repository, and compiling it on every target. Instead, you more likely want to cross-compile right from your development machine, <strong>for</strong> every target 😊 architecture and accelerator.</p><p>See <a href="/tutorials/getting_started/">Getting Started with ZML</a> if you need more information on how to compile a model.</p><p>Here's a quick recap:</p><p>You can compile models for accelerator runtimes by appending one or more of the following arguments to the command line when compiling / running a model:</p><ul><li>NVIDIA CUDA: <code>--@zml//runtimes:cuda=true</code></li><li>AMD RoCM: <code>--@zml//runtimes:rocm=true</code></li><li>Google TPU: <code>--@zml//runtimes:tpu=true</code></li><li><strong>AVOID CPU:</strong> <code>--@zml//runtimes:cpu=false</code></li></ul><p>So, to run the OpenLLama model from above <strong>on your development machine</strong> housing an NVIDIA GPU, run the following:</p><pre><code>cd examples
+  <!-- <h1 :text="$page.title"></h1> -->
+  <div id="docs"><h1>Deploying Models on a Server</h1><p>To run models on remote GPU/TPU machines, it is not convenient having to check out the ZML or your project's repository, and compiling it on every target. Instead, you more likely want to cross-compile right from your development machine, <strong>for</strong> every target 😊 architecture and accelerator.</p><p>See <a href="/tutorials/getting_started/">Getting Started with ZML</a> if you need more information on how to compile a model.</p><p>Here's a quick recap:</p><p>You can compile models for accelerator runtimes by appending one or more of the following arguments to the command line when compiling / running a model:</p><ul><li>NVIDIA CUDA: <code>--@zml//runtimes:cuda=true</code></li><li>AMD RoCM: <code>--@zml//runtimes:rocm=true</code></li><li>Google TPU: <code>--@zml//runtimes:tpu=true</code></li><li><strong>AVOID CPU:</strong> <code>--@zml//runtimes:cpu=false</code></li></ul><p>So, to run the OpenLLama model from above <strong>on your development machine</strong> housing an NVIDIA GPU, run the following:</p><pre><code>cd examples
 bazel run -c opt //llama:OpenLLaMA-3B --@zml//runtimes:cuda=true
-</code></pre><h2>Cross-Compiling and creating a TAR for your server</h2><p>Currently, ZML lets you cross-compile to one of the following target host architectures:</p><ul><li>Linux X86_64: <code>--platforms=@zml//platforms:linux_amd64</code></li><li>Linux ARM64: <code>--platforms=@zml//platforms:linux_amd64</code></li><li>MacOS ARM64: <code>--platforms=@zml//platforms:linux_amd64</code></li></ul><p>As an example, here is how you build above OpenLLama for CUDA on Linux X86_64:</p><pre><code>cd examples
+</code></pre><h2>Cross-Compiling and creating a TAR for your server</h2><p>Currently, ZML lets you cross-compile to one of the following target host architectures:</p><ul><li>Linux X86_64: <code>--platforms=@zml//platforms:linux_amd64</code></li><li>Linux ARM64: <code>--platforms=@zml//platforms:linux_arm64</code></li><li>MacOS ARM64: <code>--platforms=@zml//platforms:macos_arm64</code></li></ul><p>As an example, here is how you build above OpenLLama for CUDA on Linux X86_64:</p><pre><code>cd examples
 bazel build -c opt //llama:OpenLLaMA-3B      \
             --@zml//runtimes:cuda=true       \
             --@zml//runtimes:cpu=false       \
