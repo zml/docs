@@ -1,5 +1,5 @@
 ---
-.title = "Deploying Models on a Server",
+.title = "Dockerize a Model",
 .layout = "documentation.shtml",
 .author = "renerocksai",
 .date = @date("2024-08-31"),
