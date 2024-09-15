@@ -34,7 +34,7 @@ class ProcessingFileAction:
     source_file: str      # the file being processed
 
 @dataclass
-class IngoreFileAction:
+class IgnoreFileAction:
     source_file: str      # the file being processed
     reason: str
 
@@ -46,7 +46,7 @@ class TranslateImageAction:
 
 
 Action = Union[CreateDirAction, TranslateLinkAction, MergeIntoSmdAction,
-               SplitSmdAction, ProcessingFileAction, IngoreFileAction, 
+               SplitSmdAction, ProcessingFileAction, IgnoreFileAction, 
                TranslateImageAction]
 
 
@@ -178,7 +178,7 @@ class Github2Zine:
             if os.path.basename(smd_yaml_src) == 'README.smd':
                 smd_yaml_src = rename_basename(smd_yaml_src, 'index.smd')
             if not os.path.exists(smd_yaml_src):
-                self.actions.append(IngoreFileAction(source_file=source_md,
+                self.actions.append(IgnoreFileAction(source_file=source_md,
                     reason=f'Matching .smd file {smd_yaml_src} does not exist'))
                 continue
             self.process_file(source_md, smd_yaml_src)
@@ -348,9 +348,15 @@ class Zine2Github:
             if os.path.basename(dest_smd_yaml) == 'index.smd':
                 dest_md = rename_basename(dest_md, 'README.md')
             if not os.path.exists(dest_md):
-                self.actions.append(IngoreFileAction(source_file=source_smd,
-                    reason=f'Matching `{dest_md}` for {source_smd} does not exist'))
-                continue
+                # TODO: we should create it! orelse we will never be able
+                #       to add new .smd files w/o touching the zml/docs first
+                #        we could ignore README.md but they don't harm
+                #        update: we only create it further down, if there's actual
+                #        content!
+                # self.actions.append(IgnoreFileAction(source_file=source_smd,
+                #     reason=f'Matching `{dest_md}` for {source_smd} does not exist'))
+                # continue
+                pass
             self.process_file(source_smd, dest_smd_yaml, dest_md)
 
 
@@ -371,7 +377,6 @@ class Zine2Github:
         # rewrite content
         new_content = self.rewrite_content(content, source_smd)
         yaml, new_content = self.split_yaml_and_content(new_content, source_smd)
-        new_content = new_content.strip()  # makes it falsy if only empty lines
 
         # create the smd subdirs if necessary
         smd_dirs = get_dir_of(dest_smd_yaml)
@@ -394,11 +399,11 @@ class Zine2Github:
                                            smd_dest=dest_smd_yaml,
                                            md_dest=dest_md))
         if not self.dry_run:
-            # create the YAML
-            if content:
-                # do the md part
-                pass
-
+            with open(dest_smd_yaml, 'wt') as f:
+                f.write(yaml)
+            if new_content.strip():
+                with open(dest_md, 'wt') as f:
+                    f.write(new_content)
         return
 
     def rewrite_link(self, relative_path: str, link_text: str, target: str):
@@ -411,7 +416,7 @@ class Zine2Github:
 
         if original.startswith('#'):
             # anchor-only
-            return original
+            return f'[{link_text}]({original})'
 
         if not target.startswith('/') and not target.startswith('$image'):
             raise ValueError(f"ERROR: In {relative_path} link target {target} must be absolute path or $image.url")
