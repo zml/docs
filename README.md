@@ -6,7 +6,7 @@
 - bazel : for building zig docs
 - zig : for building the docs with Zine
 
-## HOWTO:
+## HOW TO EDIT WITH LIVE-PREVIEW & COMMIT DOCS
 
 ```console
 ./00-CLONE-ZML.sh
@@ -74,7 +74,7 @@ Changes not staged for commit:
 no changes added to commit (use "git add" and/or "git commit -a")
 ```
 
-## NOTE:
+### NOTE:
 
 - the .smd files are the authoritative source of existence, 
       meaning: if there is no .smd file in `./contents/`, its associated
@@ -90,3 +90,29 @@ such shenanigans.
 - you must mv it in both:
     - this repo: `./content/`
     - and the zml repo: `./zml/docs/content/`
+
+
+## HACKING
+
+This repository contains a collection of bash and python scripts. For python,
+having the Python LSP running is recommended. For that reason, an environment
+`env` is provided that contains the LSP.
+
+To create the environment:
+
+```console
+python -m venv env
+source ./env/bin/activate
+pip install -r ./requirements_lsp.txt
+```
+
+After that, the environment is already activated and you can start your editor.
+
+If you return to your work and need to activate the environment:
+
+```console
+source ./env/bin/activate
+# and start the one and only true editor:
+nvim
+```
+
