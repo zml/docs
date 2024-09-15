@@ -31,6 +31,12 @@ Only ever use the following link notation to link to other docs:
 
 ### HOWTO Images
 
+**For multi-repo reasons, we never serve images from the `assets/` folder**.
+They wouldn't show up on github.
+
+Instead, we upload them into the `docs-assets/` folder of the
+[zml.github.io website repo](https://github.com/zml/zml.github.io/)
+
 Until Zine is fixed (Loris is working on it), use the following notation for
 images:
 
