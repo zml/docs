@@ -126,8 +126,31 @@
     }
   </style>
   <h3 class="centered"></h3>
+  <script>
+    // Find all short <code> elements in the document, and replace them with links to our docs, or pytorch docs.
+    document.addEventListener('DOMContentLoaded', function() {
+      const codeElements = document.querySelectorAll('code');
+
+      codeElements.forEach(function(codeElement) {
+          const codeContent = codeElement.textContent;
+          if (codeContent.includes(' ')) return;
+
+          if (codeContent.startsWith('zml.')) {
+            const linkElement = document.createElement('a');
+            linkElement.href = "/misc/zml_api/#" + codeContent;
+            linkElement.textContent = codeContent;
+            codeElement.replaceWith(linkElement);
+          } else if (codeContent.startsWith('torch.')) {
+            const linkElement = document.createElement('a');
+            linkElement.href = "https://pytorch.org/docs/stable/generated/" + codeContent;
+            linkElement.textContent = codeContent;
+            codeElement.replaceWith(linkElement);
+          }
+      });
+  });
+  </script>
   <!-- <h1 :text="$page.title"></h1> -->
-  <div id="docs"><h1>Simplifying Dimension Handling with Tagged Tensors</h1><h1>Coming Soon...</h1><p>See <a href="/learn/concepts/">ZML Concepts</a> for an introduction to Tensors and Shapes.</p></div>
+  <div id="docs"><h1 id="simplifying-dimension-handling-with-tagged-tensors">Simplifying Dimension Handling with Tagged Tensors</h1><h1 id="coming-soon">Coming Soon...</h1><p>See <a href="/learn/concepts/">ZML Concepts</a> for an introduction to Tensors and Shapes.</p></div>
 </div>
     </main>
 

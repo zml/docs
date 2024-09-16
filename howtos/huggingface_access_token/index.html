@@ -126,8 +126,31 @@
     }
   </style>
   <h3 class="centered"></h3>
+  <script>
+    // Find all short <code> elements in the document, and replace them with links to our docs, or pytorch docs.
+    document.addEventListener('DOMContentLoaded', function() {
+      const codeElements = document.querySelectorAll('code');
+
+      codeElements.forEach(function(codeElement) {
+          const codeContent = codeElement.textContent;
+          if (codeContent.includes(' ')) return;
+
+          if (codeContent.startsWith('zml.')) {
+            const linkElement = document.createElement('a');
+            linkElement.href = "/misc/zml_api/#" + codeContent;
+            linkElement.textContent = codeContent;
+            codeElement.replaceWith(linkElement);
+          } else if (codeContent.startsWith('torch.')) {
+            const linkElement = document.createElement('a');
+            linkElement.href = "https://pytorch.org/docs/stable/generated/" + codeContent;
+            linkElement.textContent = codeContent;
+            codeElement.replaceWith(linkElement);
+          }
+      });
+  });
+  </script>
   <!-- <h1 :text="$page.title"></h1> -->
-  <div id="docs"><h1>Huggingface Token Authentication</h1><p>Some models have restrictions and may require some sort of approval or agreement process, which, by consequence, <strong>requires token-authentication with Huggingface</strong>.</p><p>Here is how you can generate a <strong>"read-only public repositories"</strong> access token to log into your account on Huggingface, directly from <code>bazel</code>, in order to download models.</p><ul><li>log in at <a href="https://huggingface.co/settings/tokens" target="_blank">https://huggingface.co/settings/tokens</a>.</li><li>click on "Create new token"</li><li>give the token a name, eg <code>zml_public_repos</code>,</li><li>under <em>Repositories</em>, grant the following permission: "Read access to contents of all public gated repos you can access".</li><li>at the bottom click on "Create token".</li><li>copy the token by clicking <code>Copy</code>. <strong>You won't be able to see it again.</strong></li><li>the token looks something like <code>hf_abCdEfGhijKlM</code>.</li><li>store the token on your machine (replace the placeholder with your actual token):</li></ul><pre><code>echo -n &lt;hf_my_token&gt; &gt; `$HOME/.cache/huggingface/token`
+  <div id="docs"><h1 id="huggingface-token-authentication">Huggingface Token Authentication</h1><p>Some models have restrictions and may require some sort of approval or agreement process, which, by consequence, <strong>requires token-authentication with Huggingface</strong>.</p><p>Here is how you can generate a <strong>"read-only public repositories"</strong> access token to log into your account on Huggingface, directly from <code>bazel</code>, in order to download models.</p><ul><li>log in at <a href="https://huggingface.co/settings/tokens" target="_blank">https://huggingface.co/settings/tokens</a>.</li><li>click on "Create new token"</li><li>give the token a name, eg <code>zml_public_repos</code>,</li><li>under <em>Repositories</em>, grant the following permission: "Read access to contents of all public gated repos you can access".</li><li>at the bottom click on "Create token".</li><li>copy the token by clicking <code>Copy</code>. <strong>You won't be able to see it again.</strong></li><li>the token looks something like <code>hf_abCdEfGhijKlM</code>.</li><li>store the token on your machine (replace the placeholder with your actual token):</li></ul><pre><code>echo -n &lt;hf_my_token&gt; &gt; `$HOME/.cache/huggingface/token`
 </code></pre><p>The <code>-n</code> is important in order to not append an "end of line" character at the end of the file that would corrupt the token.</p><p>Now you're ready to download a gated model like <code>Meta-Llama-3-8b</code>!</p><p><strong>Example:</strong></p><pre><code># requires token in $HOME/.cache/huggingface/token
 cd examples
 bazel run -c opt //llama:Meta-Llama-3-8b

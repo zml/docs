@@ -126,8 +126,31 @@
     }
   </style>
   <h3 class="centered"></h3>
+  <script>
+    // Find all short <code> elements in the document, and replace them with links to our docs, or pytorch docs.
+    document.addEventListener('DOMContentLoaded', function() {
+      const codeElements = document.querySelectorAll('code');
+
+      codeElements.forEach(function(codeElement) {
+          const codeContent = codeElement.textContent;
+          if (codeContent.includes(' ')) return;
+
+          if (codeContent.startsWith('zml.')) {
+            const linkElement = document.createElement('a');
+            linkElement.href = "/misc/zml_api/#" + codeContent;
+            linkElement.textContent = codeContent;
+            codeElement.replaceWith(linkElement);
+          } else if (codeContent.startsWith('torch.')) {
+            const linkElement = document.createElement('a');
+            linkElement.href = "https://pytorch.org/docs/stable/generated/" + codeContent;
+            linkElement.textContent = codeContent;
+            codeElement.replaceWith(linkElement);
+          }
+      });
+  });
+  </script>
   <!-- <h1 :text="$page.title"></h1> -->
-  <div id="docs"><h1>CHANGELOG</h1><h2>Release V1.0.0</h2><h3>⭐ NEW</h3><p>In the initial version, everything is new.</p><h3>🦋 Changed</h3><p>Initial version comes with API changes.</p><h3>❌ Removed</h3><p>Initial version comes with no removals.</p><h3>🛠️ Fixed</h3><p>Initial version comes with no fixes.</p></div>
+  <div id="docs"><h1 id="changelog">CHANGELOG</h1><h2 id="release-v1-0-0">Release V1.0.0</h2><h3 id="new">⭐ NEW</h3><p>In the initial version, everything is new.</p><h3 id="changed">🦋 Changed</h3><p>Initial version comes with API changes.</p><h3 id="removed">❌ Removed</h3><p>Initial version comes with no removals.</p><h3 id="fixed">🛠️ Fixed</h3><p>Initial version comes with no fixes.</p></div>
 </div>
     </main>
 

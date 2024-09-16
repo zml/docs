@@ -126,8 +126,31 @@
     }
   </style>
   <h3 class="centered"></h3>
+  <script>
+    // Find all short <code> elements in the document, and replace them with links to our docs, or pytorch docs.
+    document.addEventListener('DOMContentLoaded', function() {
+      const codeElements = document.querySelectorAll('code');
+
+      codeElements.forEach(function(codeElement) {
+          const codeContent = codeElement.textContent;
+          if (codeContent.includes(' ')) return;
+
+          if (codeContent.startsWith('zml.')) {
+            const linkElement = document.createElement('a');
+            linkElement.href = "/misc/zml_api/#" + codeContent;
+            linkElement.textContent = codeContent;
+            codeElement.replaceWith(linkElement);
+          } else if (codeContent.startsWith('torch.')) {
+            const linkElement = document.createElement('a');
+            linkElement.href = "https://pytorch.org/docs/stable/generated/" + codeContent;
+            linkElement.textContent = codeContent;
+            codeElement.replaceWith(linkElement);
+          }
+      });
+  });
+  </script>
   <!-- <h1 :text="$page.title"></h1> -->
-  <div id="docs"><h1>ZML Style Guide</h1><p>We prefer to keep it simple and adhere to the <a href="https://ziglang.org/documentation/0.13.0/#Style-Guide" target="_blank">Zig Style Guide</a>.</p><p>We use ZLS to auto-format code.</p><p>In addition, we try to adhere to the following house-rules:</p><h3>We favor:</h3><pre><code class="zig"><span class="type qualifier">const</span> <span class="variable">x</span><span class="punctuation delimiter">:</span> <span class="variable">Foo</span> = <span class="punctuation delimiter">.</span><span class="punctuation bracket">{</span> <span class="punctuation delimiter">.</span><span class="field">bar</span> = <span class="number">1</span> <span class="punctuation bracket">}</span> 
+  <div id="docs"><h1 id="zml-style-guide">ZML Style Guide</h1><p>We prefer to keep it simple and adhere to the <a href="https://ziglang.org/documentation/0.13.0/#Style-Guide" target="_blank">Zig Style Guide</a>.</p><p>We use ZLS to auto-format code.</p><p>In addition, we try to adhere to the following house-rules:</p><h3 id="we-favor">We favor:</h3><pre><code class="zig"><span class="type qualifier">const</span> <span class="variable">x</span><span class="punctuation delimiter">:</span> <span class="variable">Foo</span> = <span class="punctuation delimiter">.</span><span class="punctuation bracket">{</span> <span class="punctuation delimiter">.</span><span class="field">bar</span> = <span class="number">1</span> <span class="punctuation bracket">}</span> 
 <span class="comment">// over: const x = Foo{ .bar = 1}</span><span class="punctuation delimiter"></span>
 
 <span class="attribute">pub</span> <span class="keyword function">fn</span> <span class="function">method</span><span class="punctuation bracket">(</span><span class="parameter">self</span><span class="punctuation delimiter">:</span> <span class="variable">Foo</span><span class="punctuation bracket">)</span> <span class="type builtin">void</span>

@@ -126,8 +126,31 @@
     }
   </style>
   <h3 class="centered"></h3>
+  <script>
+    // Find all short <code> elements in the document, and replace them with links to our docs, or pytorch docs.
+    document.addEventListener('DOMContentLoaded', function() {
+      const codeElements = document.querySelectorAll('code');
+
+      codeElements.forEach(function(codeElement) {
+          const codeContent = codeElement.textContent;
+          if (codeContent.includes(' ')) return;
+
+          if (codeContent.startsWith('zml.')) {
+            const linkElement = document.createElement('a');
+            linkElement.href = "/misc/zml_api/#" + codeContent;
+            linkElement.textContent = codeContent;
+            codeElement.replaceWith(linkElement);
+          } else if (codeContent.startsWith('torch.')) {
+            const linkElement = document.createElement('a');
+            linkElement.href = "https://pytorch.org/docs/stable/generated/" + codeContent;
+            linkElement.textContent = codeContent;
+            codeElement.replaceWith(linkElement);
+          }
+      });
+  });
+  </script>
   <!-- <h1 :text="$page.title"></h1> -->
-  <div id="docs"><h1>Adding Weights Files</h1><p>Our <a href="/tutorials/write_first_model/">first model</a> did not need any weights files. We just created weights and bias at runtime..</p><p>But real-world models typically need weights files, and maybe some other supporting files.</p><p>We recommend, for easy deployments, you upload those files. In many instances, you will use a site like <a href="https://huggingface.co" target="_blank">🤗 Hugging Face</a>.</p><p>We also recommend to add a <code>weights.bzl</code> file to your project root directory, so you don't "pollute" your build file with long URLs and SHAs:</p><pre><code class="python"><span class="function">load</span>(<span class="string">&quot;@bazel_tools//tools/build_defs/repo:http.bzl&quot;</span>, <span class="string">&quot;http_file&quot;</span>)
+  <div id="docs"><h1 id="adding-weights-files">Adding Weights Files</h1><p>Our <a href="/tutorials/write_first_model/">first model</a> did not need any weights files. We just created weights and bias at runtime..</p><p>But real-world models typically need weights files, and maybe some other supporting files.</p><p>We recommend, for easy deployments, you upload those files. In many instances, you will use a site like <a href="https://huggingface.co" target="_blank">🤗 Hugging Face</a>.</p><p>We also recommend to add a <code>weights.bzl</code> file to your project root directory, so you don't "pollute" your build file with long URLs and SHAs:</p><pre><code class="python"><span class="function">load</span>(<span class="string">&quot;@bazel_tools//tools/build_defs/repo:http.bzl&quot;</span>, <span class="string">&quot;http_file&quot;</span>)
 
 <span class="keyword">def</span> <span class="function">_weights_impl</span>(<span class="variable">mctx</span>):
     <span class="function">http_file</span>(
