@@ -8,8 +8,8 @@
             // .hash = "1220a59c2cf0e42a6f42cf1bf9b6a6c2691abfd91fcafa0e81a6282c4a197d05c41a",
 
             // modified zine
-            .url = "git+https://github.com/renerocksai/zine#f74c33a43d9a9b8b301301f341d000728f39ab82",
-            .hash = "1220898a841ed1c702465f09ae51c3afc7e2d958bba14594d48e2becc3a0ca12b593",
+            .url = "git+https://github.com/renerocksai/zine#170567737efc5333b38886cfe83211e011267b24",
+            .hash = "1220ec97928f9e1f1a95ff8c39a943cf6ebab2ff2e6acb1900aeb7844f906b1ce3aa",
 
             // rene local dev
             // .path = "../../renerocksai/zine",
