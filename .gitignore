@@ -1,6 +1,7 @@
 zml
 zml/
 WORKSPACE/
+assets/sources.tar
 
 .zig-cache/
 zig-out/

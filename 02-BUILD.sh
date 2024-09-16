@@ -12,7 +12,7 @@ fi
 tar $MAC_TAR_DISABLE_STUFF_FLAG -cf sources.tar zml/*.zig zml/**/*.zig
 cd ..
 
-cp -f ./zml/sources.tar WORKSPACE/
+cp -f ./zml/sources.tar WORKSPACE/assets/
 cp -v ./build.zig* WORKSPACE/
 
 

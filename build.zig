@@ -30,20 +30,16 @@ pub fn build(b: *std.Build) !void {
         .static_assets = &.{
             "zml.no_light.svg",
             "zml_api.js",
+            "sources.tar",
         },
         .build_assets = &.{
-            .{ .name = "main.wasm", .lp = docs_wasm.getEmittedBin(), .install_path = "main.wasm", .install_always = true },
-            staticAsset(b, "sources.tar"),
+            .{
+                .name = "main.wasm",
+                .lp = docs_wasm.getEmittedBin(),
+                .install_path = "main.wasm",
+                .install_always = true,
+            },
         },
         .debug = true,
     });
-}
-
-fn staticAsset(b: *std.Build, name: []const u8) zine.BuildAsset {
-    return .{
-        .name = name,
-        .lp = b.path(name),
-        .install_path = name,
-        .install_always = true,
-    };
 }
