@@ -51,7 +51,7 @@ jobs:
           eval "$(ssh-agent -s)"
           ssh-keyscan -t ed25519 github.com > ~/.ssh/known_hosts
           ssh-add - <<< "${{ secrets.DEPLOY_KEY }}"
-          ./02-BUILD.sh
+          ./02-BUILD.sh --release=small
 
       # Checkout the docs branch
       - name: Checkout the docs branch

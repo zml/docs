@@ -11,7 +11,7 @@ pub fn build(b: *std.Build) !void {
     const docs_wasm = b.addExecutable(.{
         .name = "main",
         .target = wasm_target,
-        .optimize = .Debug,
+        .optimize = b.standardOptimizeOption(.{}),
         .root_source_file = .{ .cwd_relative = "zig_docs/main.zig" },
     });
     docs_wasm.entry = .disabled;
