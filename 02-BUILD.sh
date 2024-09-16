@@ -4,7 +4,12 @@ cd zml
 # Some could be useful like sentencepiece.pb.zig,
 # but they aren't properly put in places where the wasm code expects them,
 # resulting in broken links + polluting the search bar.
-tar -cf sources.tar zml/*.zig zml/**/*.zig
+if tar --version | grep bsdtar ; then
+    echo BSD TAR
+    MAC_TAR_DISABLE_STUFF_FLAG=--no-mac-metadata
+fi
+
+tar $MAC_TAR_DISABLE_STUFF_FLAG -cf sources.tar zml/*.zig zml/**/*.zig
 cd ..
 
 cp -f ./zml/sources.tar WORKSPACE/
