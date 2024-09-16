@@ -3,10 +3,16 @@
     .version = "0.0.0",
     .dependencies = .{
         .zine = .{
-            // .url = "git+https://github.com/renerocksai/zine#b581a1a924d2095c3fafb569d9ab6a1cffb57be9",
-            // .hash = "1220ed6e971cc9f6d33bc2a83501c67210e28eb98903a029249c86fb5ffcd5e73264",
-            .url = "git+https://github.com/kristoff-it/zine?ref=v0.6.1#872c474b33dab2dd35e37bcf156149d20498197c",
-            .hash = "1220a59c2cf0e42a6f42cf1bf9b6a6c2691abfd91fcafa0e81a6282c4a197d05c41a",
+            // zine, the original
+            // .url = "git+https://github.com/kristoff-it/zine?ref=v0.6.1#872c474b33dab2dd35e37bcf156149d20498197c",
+            // .hash = "1220a59c2cf0e42a6f42cf1bf9b6a6c2691abfd91fcafa0e81a6282c4a197d05c41a",
+
+            // modified zine
+            .url = "git+https://github.com/renerocksai/zine#f74c33a43d9a9b8b301301f341d000728f39ab82",
+            .hash = "1220898a841ed1c702465f09ae51c3afc7e2d958bba14594d48e2becc3a0ca12b593",
+
+            // rene local dev
+            // .path = "../../renerocksai/zine",
         },
     },
     .paths = .{"."},
