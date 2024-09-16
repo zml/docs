@@ -162,8 +162,8 @@ bazel build -c opt //mnist:archive                  \
 ssh destination-server
 tar xvf archive.tar.zst
 ./mnist                                                                       \
-    &apos;mnist_runfiles/_main~weights~com_github_zml_cdn_mnist/file/mnist.pt&apos;     \
-    &apos;mnist_runfiles/_main~weights~com_github_zml_cdn_mnist_data/file/mnist.ylc&apos;
+    &apos;mnist_runfiles/_main~_repo_rules~com_github_ggerganov_ggml_mnist/file/mnist.pt&apos;     \
+    &apos;mnist_runfiles/_main~_repo_rules~com_github_ggerganov_ggml_mnist_data/file/mnist.ylc&apos;
 </code></pre><p>The easiest way to figure out the runtime args is to consult the model's <code>BUILD.bazel</code> and check out its <code>args</code> section. It will reference e.g. weights files that are defined either in the same <code>BUILD.bazel</code> file or in a <code>weights.bzl</code> file.</p><p>You can also consult the console output when running your model locally:</p><pre><code>bazel run //mnist
 INFO: Analyzed target //mnist:mnist (0 packages loaded, 0 targets configured).
 INFO: Found 1 target...
