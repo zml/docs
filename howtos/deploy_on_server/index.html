@@ -150,20 +150,22 @@
   });
   </script>
   <!-- <h1 :text="$page.title"></h1> -->
-  <div id="docs"><h1 id="deploying-models-on-a-server">Deploying Models on a Server</h1><p>To run models on remote GPU/TPU machines, it is not convenient having to check out the ZML or your project's repository, and compiling it on every target. Instead, you more likely want to cross-compile right from your development machine, <strong>for</strong> every target 😊 architecture and accelerator.</p><p>See <a href="/tutorials/getting_started/">Getting Started with ZML</a> if you need more information on how to compile a model.</p><p>Here's a quick recap:</p><p>You can compile models for accelerator runtimes by appending one or more of the following arguments to the command line when compiling / running a model:</p><ul><li>NVIDIA CUDA: <code>--@zml//runtimes:cuda=true</code></li><li>AMD RoCM: <code>--@zml//runtimes:rocm=true</code></li><li>Google TPU: <code>--@zml//runtimes:tpu=true</code></li><li><strong>AVOID CPU:</strong> <code>--@zml//runtimes:cpu=false</code></li></ul><p>So, to run the OpenLLama model from above <strong>on your development machine</strong> housing an NVIDIA GPU, run the following:</p><pre><code>cd examples
+  <div id="docs"><h1 id="deploying-models-on-a-server">Deploying Models on a Server</h1><p>To run models on remote GPU/TPU machines, it is inconvenient to have to check out your project’s repository and compile it on every target. Instead, you more likely want to cross-compile right from your development machine, <strong>for every</strong> supported target architecture and accelerator.</p><p>See <a href="/tutorials/getting_started/">Getting Started with ZML</a> if you need more information on how to compile a model.</p><p><strong>Here's a quick recap:</strong></p><p>You can compile models for accelerator runtimes by appending one or more of the following arguments to the command line when compiling / running a model:</p><ul><li>NVIDIA CUDA: <code>--@zml//runtimes:cuda=true</code></li><li>AMD RoCM: <code>--@zml//runtimes:rocm=true</code></li><li>Google TPU: <code>--@zml//runtimes:tpu=true</code></li><li><strong>AVOID CPU:</strong> <code>--@zml//runtimes:cpu=false</code></li></ul><p>So, to run the OpenLLama model from above <strong>on your development machine</strong> housing an NVIDIA GPU, run the following:</p><pre><code>cd examples
 bazel run -c opt //llama:OpenLLaMA-3B --@zml//runtimes:cuda=true
-</code></pre><h2 id="cross-compiling-and-creating-a-tar-for-your-server">Cross-Compiling and creating a TAR for your server</h2><p>Currently, ZML lets you cross-compile to one of the following target host architectures:</p><ul><li>Linux X86_64: <code>--platforms=@zml//platforms:linux_amd64</code></li><li>Linux ARM64: <code>--platforms=@zml//platforms:linux_arm64</code></li><li>MacOS ARM64: <code>--platforms=@zml//platforms:macos_arm64</code></li></ul><p>As an example, here is how you build above OpenLLama for CUDA on Linux X86_64:</p><pre><code>cd examples
-bazel build -c opt //llama:OpenLLaMA-3B      \
-            --@zml//runtimes:cuda=true       \
-            --@zml//runtimes:cpu=false       \
+</code></pre><h2 id="cross-compiling-and-creating-a-tar-for-your-server">Cross-Compiling and creating a TAR for your server</h2><p>Currently, ZML lets you cross-compile to one of the following target architectures:</p><ul><li>Linux X86_64: <code>--platforms=@zml//platforms:linux_amd64</code></li><li>Linux ARM64: <code>--platforms=@zml//platforms:linux_arm64</code></li><li>MacOS ARM64: <code>--platforms=@zml//platforms:macos_arm64</code></li></ul><p>As an example, here is how you build above OpenLLama for CUDA on Linux X86_64:</p><pre><code>cd examples
+bazel build -c opt //llama:OpenLLaMA-3B               \
+            --@zml//runtimes:cuda=true                \
+            --@zml//runtimes:cpu=false                \
             --platforms=@zml//platforms:linux_amd64
-</code></pre><h3 id="creating-the-tar">Creating the TAR</h3><p>When cross-compiling, it is convenient to produce a compressed TAR file that you can copy to the target host, so you can unpack it there and run the model.</p><p>Let's use MNIST as example.</p><p>If not present already, you just add a target to the model's <code>BUILD.bazel</code> like this:</p><pre><code class="python"><span class="function">load</span>(<span class="string">&quot;@aspect_bazel_lib//lib:tar.bzl&quot;</span>, <span class="string">&quot;mtree_spec&quot;</span>, <span class="string">&quot;tar&quot;</span>)
+</code></pre><h3 id="creating-the-tar">Creating the TAR</h3><p>When cross-compiling, it is convenient to produce a compressed TAR file that you can copy to the target host, so you can unpack it there and run the model.</p><p>Let's use MNIST as example.</p><p>If not present already, add an "archive" target to the model's <code>BUILD.bazel</code>, like this:</p><pre><code class="python"><span class="function">load</span>(<span class="string">&quot;@aspect_bazel_lib//lib:tar.bzl&quot;</span>, <span class="string">&quot;mtree_spec&quot;</span>, <span class="string">&quot;tar&quot;</span>)
 
+<span class="comment"># Manifest, required for building the tar archive</span>
 <span class="function">mtree_spec</span>(
     <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;mtree&quot;</span>,
     <span class="variable">srcs</span> <span class="operator">=</span> [<span class="string">&quot;:mnist&quot;</span>],
 )
 
+<span class="comment"># Create a tar archive from the above manifest</span>
 <span class="function">tar</span>(
     <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;archive&quot;</span>,
     <span class="variable">srcs</span> <span class="operator">=</span> [<span class="string">&quot;:mnist&quot;</span>],
@@ -175,28 +177,34 @@ bazel build -c opt //llama:OpenLLaMA-3B      \
     <span class="variable">mtree</span> <span class="operator">=</span> <span class="string">&quot;:mtree&quot;</span>,
 )
 </code></pre>
-<p>... and then build it:</p><pre><code># cd examples
-bazel build -c opt //mnist:archive                  \
-            --@zml//runtimes:cuda=true              \
-            --@zml//runtimes:cpu=false              \
+<p>... and then build the TAR archive:</p><pre><code># cd examples
+bazel build -c opt //mnist:archive                    \
+            --@zml//runtimes:cuda=true                \
+            --@zml//runtimes:cpu=false                \
             --platforms=@zml//platforms:linux_amd64
-</code></pre><p>Note the <code>//models/mnist:archive</code> notation.</p><p>The resulting tar file will be in <code>bazel-bin/models/mnist/archive.tar.zst</code>.</p><h3 id="run-it-on-the-server">Run it on the server</h3><p>You can copy it onto your Linux X86_64 NVIDIA GPU server, untar and run it:</p><pre><code>scp bazel-bin/examples/mnist/archive.tar.zst destination-server:
-ssh destination-server
-tar xvf archive.tar.zst
-./mnist                                                                       \
-    &apos;mnist_runfiles/_main~_repo_rules~com_github_ggerganov_ggml_mnist/file/mnist.pt&apos;     \
-    &apos;mnist_runfiles/_main~_repo_rules~com_github_ggerganov_ggml_mnist_data/file/mnist.ylc&apos;
-</code></pre><p>The easiest way to figure out the runtime args is to consult the model's <code>BUILD.bazel</code> and check out its <code>args</code> section. It will reference e.g. weights files that are defined either in the same <code>BUILD.bazel</code> file or in a <code>weights.bzl</code> file.</p><p>You can also consult the console output when running your model locally:</p><pre><code>bazel run //mnist
-INFO: Analyzed target //mnist:mnist (0 packages loaded, 0 targets configured).
-INFO: Found 1 target...
-Target //mnist:mnist up-to-date:
-  bazel-bin/models/mnist/mnist
-INFO: Elapsed time: 0.121s, Critical Path: 0.00s
-INFO: 1 process: 1 internal.
-INFO: Build completed successfully, 1 total action
-INFO: Running command line: bazel-bin/models/mnist/mnist ../_main~weights~com_github_zml_cdn_mnist/file/mnist.pt ../_main~weights~com_github_zml_cdn_mnist_data/file/mnist.ylc
-# ...
-</code></pre><p>You see the command line right up there. You just need to replace <code>../</code> with the 'runfiles' directory of your TAR.</p></div>
+</code></pre><p>Note the <code>//mnist:archive</code> notation.</p><p>The resulting tar file will be in <code>bazel-bin/mnist/archive.tar.zst</code>.</p><h3 id="run-it-on-the-server">Run it on the server</h3><p>You can copy the TAR archive onto your Linux X86_64 NVIDIA GPU server, untar and run it:</p><pre><code class="bash"><span class="comment"># on your machine</span>
+<span class="constant">scp</span> <span class="constant">bazel-bin/mnist/archive.tar.zst</span> <span class="constant">destination-server:</span>
+<span class="constant">ssh</span> <span class="constant">destination-server</span>   <span class="comment"># to enter the server</span>
+
+<span class="comment"># ... on the server</span>
+<span class="constant">tar</span> <span class="constant">xvf</span> <span class="constant">archive.tar.zst</span>
+<span class="constant">./mnist</span> \
+    <span class="constant">&apos;mnist.runfiles/_main~_repo_rules~com_github_ggerganov_ggml_mnist/file/mnist.pt&apos;</span> \
+    <span class="constant">&apos;mnist.runfiles/_main~_repo_rules~com_github_ggerganov_ggml_mnist_data/file/mnist.ylc&apos;</span>
+</code></pre>
+<p>The easiest way to figure out the commandline arguments of an example model is to consult the model's <code>BUILD.bazel</code> and check out its <code>args</code> section. It will reference e.g. weights files that are defined either in the same <code>BUILD.bazel</code> file or in a <code>weights.bzl</code> file.</p><p>You can also consult the console output when running your model locally:</p><pre><code class="bash"><span class="constant">bazel</span> <span class="constant">run</span> <span class="constant">//mnist</span>
+
+<span class="constant">INFO:</span> <span class="constant">Analyzed</span> <span class="constant">target</span> <span class="constant">//mnist:mnist</span> (<span class="constant">0</span> <span class="constant">packages</span> <span class="constant">loaded,</span> <span class="constant">0</span> <span class="constant">targets</span> <span class="constant">configured</span>)<span class="constant">.</span>
+<span class="constant">INFO:</span> <span class="constant">Found</span> <span class="constant">1</span> <span class="constant">target...</span>
+<span class="constant">Target</span> <span class="constant">//mnist:mnist</span> <span class="constant">up-to-date:</span>
+  <span class="constant">bazel-bin/mnist/mnist</span>
+<span class="constant">INFO:</span> <span class="constant">Elapsed</span> <span class="constant">time:</span> <span class="constant">0.302s,</span> <span class="constant">Critical</span> <span class="constant">Path:</span> <span class="constant">0.00s</span>
+<span class="constant">INFO:</span> <span class="constant">3</span> <span class="constant">processes:</span> <span class="constant">3</span> <span class="constant">internal.</span>
+<span class="constant">INFO:</span> <span class="constant">Build</span> <span class="constant">completed</span> <span class="constant">successfully,</span> <span class="constant">3</span> <span class="constant">total</span> <span class="constant">actions</span>
+<span class="constant">INFO:</span> <span class="constant">Running</span> <span class="constant">command</span> <span class="constant">line:</span> <span class="constant">bazel-bin/mnist/mnist</span> <span class="constant">../_main~_repo_rules~com_github_ggerganov_ggml_mnist/file/mnist.pt</span> <span class="constant">../_main~_repo_rules~com_github_ggerganov_ggml_mnist_data/file/mnist.ylc</span>
+<span class="comment"># ...</span>
+</code></pre>
+<p>You see the command line right up there. On the server, you just need to replace <code>../</code> with the 'runfiles' directory of your TAR.</p></div>
 </div>
     </main>
 

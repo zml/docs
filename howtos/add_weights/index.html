@@ -150,7 +150,7 @@
   });
   </script>
   <!-- <h1 :text="$page.title"></h1> -->
-  <div id="docs"><h1 id="adding-weights-files">Adding Weights Files</h1><p>Our <a href="/tutorials/write_first_model/">first model</a> did not need any weights files. We just created weights and bias at runtime..</p><p>But real-world models typically need weights files, and maybe some other supporting files.</p><p>We recommend, for easy deployments, you upload those files. In many instances, you will use a site like <a href="https://huggingface.co" target="_blank">🤗 Hugging Face</a>.</p><p>We also recommend to add a <code>weights.bzl</code> file to your project root directory, so you don't "pollute" your build file with long URLs and SHAs:</p><pre><code class="python"><span class="function">load</span>(<span class="string">&quot;@bazel_tools//tools/build_defs/repo:http.bzl&quot;</span>, <span class="string">&quot;http_file&quot;</span>)
+  <div id="docs"><h1 id="adding-weights-files">Adding Weights Files</h1><p>Our <a href="/tutorials/write_first_model/">first model</a> did not need any weights files. We just created weights and bias at runtime.</p><p>But real-world models typically need weights files, and maybe some other supporting files.</p><p>We recommend, for easy deployments, you upload those files. In many instances, you will use a site like <a href="https://huggingface.co" target="_blank">🤗 Hugging Face</a>.</p><p>We also recommend to add a <code>weights.bzl</code> file to your project root directory, so you don't "pollute" your build file with long URLs and SHAs:</p><pre><code class="python"><span class="function">load</span>(<span class="string">&quot;@bazel_tools//tools/build_defs/repo:http.bzl&quot;</span>, <span class="string">&quot;http_file&quot;</span>)
 
 <span class="keyword">def</span> <span class="function">_weights_impl</span>(<span class="variable">mctx</span>):
     <span class="function">http_file</span>(
@@ -177,7 +177,7 @@
     <span class="variable">implementation</span> <span class="operator">=</span> <span class="variable">_weights_impl</span>,
 )
 </code></pre>
-<p>The above shows how we load files for MNIST:</p><ul><li><code>mnist.pt</code> (model weights)</li><li><code>mnist.ylc</code> (dataset for picking sample images)</li></ul><p>Then, in your <code>BUILD.bazel</code>, you can refer to the files you defined above, in the following way:</p><pre><code class="python"><span class="function">zig_cc_binary</span>(
+<p>The above <code>weights.bzl</code> shows how we load files for MNIST:</p><ul><li><code>mnist.pt</code> (model weights)</li><li><code>mnist.ylc</code> (dataset for picking sample images)</li></ul><p>Then, in your <code>BUILD.bazel</code>, you can refer to the files you defined above, in the following way:</p><pre><code class="python"><span class="function">zig_cc_binary</span>(
     <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;mnist&quot;</span>,
     <span class="variable">args</span> <span class="operator">=</span> [
         <span class="string">&quot;$(location @com_github_zml_cdn_mnist//file)&quot;</span>,

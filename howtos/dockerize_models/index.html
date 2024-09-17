@@ -150,9 +150,9 @@
   });
   </script>
   <!-- <h1 :text="$page.title"></h1> -->
-  <div id="docs"><h1 id="dockerize-a-model">Dockerize a Model</h1><p>A convenient way of <a href="/howtos/deploy_on_server/">deploying a model</a> is packaging your model up in a Docker container. Thanks to bazel, this is really easy. You just have to append a few lines to your model's <code>BUILD.bazel</code>.</p><p>Let's try it with our <a href="/tutorials/write_first_model/">first model</a>, as it doesn't need any additional weights files. We'll see <a href="#adding-weights-and-data">down below</a> how to add those. You'll also see how to add GPU/TPU support for your container there.</p><p>The steps required are:</p><ol><li>Let bazel create a MANIFEST for the tar file to come.</li><li>Let bazel create a TAR archive of everything needed for the model to run.<ul><li>see also: <a href="/howtos/deploy_on_server/">Deploying Models on a Server</a>, where we prepare a TAR file, and copy it to and run it on a remote GPU server.</li></ul></li><li>Let bazel create an OCI image for Linux X86_64.</li><li>Let bazel push the image straight to the Docker registry.</li><li>Optional: <a href="#adding-weights-and-data">add weights and data</a>, GPU/TPU support.</li></ol><p><strong>Note:</strong> every TAR archive we create (one in this example) becomes its own layer in the OCI image.</p><h2 id="dockerizing-our-first-model">Dockerizing our first model</h2><p>We need to add a few "imports" at the beginning of our <code>BUILD.bazel</code> so we can use their rules to define our 4 additional targets:</p><pre><code class="python"><span class="function">load</span>(<span class="string">&quot;@aspect_bazel_lib//lib:tar.bzl&quot;</span>, <span class="string">&quot;mtree_spec&quot;</span>, <span class="string">&quot;tar&quot;</span>)
+  <div id="docs"><h1 id="containerize-a-model">Containerize a Model</h1><p>A convenient way of <a href="/howtos/deploy_on_server/">deploying a model</a> is packaging it up in a Docker container. Thanks to bazel, this is really easy to do. You just have to append a few lines to your model's <code>BUILD.bazel</code>. Here is how it's done.</p><p><strong>Note:</strong> This walkthrough will work with your installed container runtime, no matter if it's <strong>Docker or e.g. Podman.</strong></p><p>Let's try containerizing our <a href="/tutorials/write_first_model/">first model</a>, as it doesn't need any additional weights files. We'll see <a href="#adding-weights-and-data">down below</a> how to add those. We'll also see how to add GPU/TPU support for our container there.</p><p>Bazel creates images from <code>.TAR</code> archives.</p><p>The steps required for containerization are:</p><ol><li>Let bazel create a MANIFEST for the tar file to come.</li><li>Let bazel create a TAR archive of everything needed for the model to run.<ul><li>see also: <a href="/howtos/deploy_on_server/">Deploying Models on a Server</a>, where we prepare a TAR file, and copy it to and run it on a remote GPU server.</li></ul></li><li>Let bazel create an OCI image for Linux X86_64.</li><li>Let bazel load the image <em>(OPTIONAL)</em>.</li><li>Let bazel push the image straight to the Docker registry.</li><li>Let bazel <a href="#adding-weights-and-data">add weights and data</a>, GPU/TPU support <em>(OPTIONAL)</em>.</li></ol><p><strong>Note:</strong> every TAR archive we create (one in this example) becomes its own layer in the OCI image.</p><h2 id="dockerizing-our-first-model">Dockerizing our first model</h2><p>We need to add a few "imports" at the beginning of our <code>BUILD.bazel</code> so we can use their rules to define our 5 additional targets:</p><pre><code class="python"><span class="function">load</span>(<span class="string">&quot;@aspect_bazel_lib//lib:tar.bzl&quot;</span>, <span class="string">&quot;mtree_spec&quot;</span>, <span class="string">&quot;tar&quot;</span>)
 <span class="function">load</span>(<span class="string">&quot;@aspect_bazel_lib//lib:transitions.bzl&quot;</span>, <span class="string">&quot;platform_transition_filegroup&quot;</span>)
-<span class="function">load</span>(<span class="string">&quot;@rules_oci//oci:defs.bzl&quot;</span>, <span class="string">&quot;oci_image&quot;</span>, <span class="string">&quot;oci_push&quot;</span>)
+<span class="function">load</span>(<span class="string">&quot;@rules_oci//oci:defs.bzl&quot;</span>, <span class="string">&quot;oci_image&quot;</span>, <span class="string">&quot;oci_load&quot;</span>, <span class="string">&quot;oci_push&quot;</span>)
 
 <span class="function">zig_cc_binary</span>(
     <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;simple_layer&quot;</span>,
@@ -163,7 +163,7 @@
     ],
 )
 </code></pre>
-<h3 id="1--the-manifest">1. The Manifest</h3><p>Now, let's make bazel generate a manifest that will be used when creating the TAR archive.</p><pre><code class="python"><span class="comment"># Manifest created from the simple_layer binary and friends</span>
+<h3 id="1--the-manifest">1. The Manifest</h3><p>To get started, let's make bazel generate a manifest that will be used when creating the TAR archive.</p><pre><code class="python"><span class="comment"># Manifest created from the simple_layer binary and friends</span>
 <span class="function">mtree_spec</span>(
     <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;mtree&quot;</span>,
     <span class="variable">srcs</span> <span class="operator">=</span> [<span class="string">&quot;:simple_layer&quot;</span>],
@@ -181,7 +181,7 @@
     <span class="variable">mtree</span> <span class="operator">=</span> <span class="string">&quot;:mtree&quot;</span>,
 )
 </code></pre>
-<p>Note that we specify high <code>zstd</code> compression, which serves two purposes: avoiding large TAR files, and also: creating TAR files that are quick to extract.</p><h3 id="3--the-image">3. The Image</h3><p>Creating the actual image is a two-step process:</p><ul><li>First, we use a rule that creates an OCI image. But we're not done yet.</li><li>Second, we force the actual OCI image to be for <code>Linux X86_64</code> always, regardless of the host we're building the image on.</li></ul><pre><code class="python"><span class="comment"># The actual docker image, with entrypoint, created from tar archive</span>
+<p>Note that we specify high <strong>zstd</strong> compression, which serves two purposes: avoiding large TAR files, and also: creating TAR files that are quick to extract.</p><h3 id="3--the-image">3. The Image</h3><p>Creating the actual image is a two-step process:</p><ul><li>First, we use a rule that creates an OCI image. But we're not done yet.</li><li>Second, we force the actual OCI image to be for <code>Linux X86_64</code> always, regardless of the host we're building the image <strong>on</strong>.</li></ul><pre><code class="python"><span class="comment"># The actual docker image, with entrypoint, created from tar archive</span>
 <span class="function">oci_image</span>(
     <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;image_&quot;</span>,
     <span class="variable">base</span> <span class="operator">=</span> <span class="string">&quot;@distroless_cc_debian12&quot;</span>,
@@ -189,7 +189,7 @@
     <span class="variable">tars</span> <span class="operator">=</span> [<span class="string">&quot;:archive&quot;</span>],
 )
 </code></pre>
-<p>See how we use string interpolation to fill in the folder name for the container's entrypoint?</p><p>Next, we use a transition rule to force the container to be for Linux X86_64:</p><pre><code class="python"><span class="comment"># We always want to create the image for Linux</span>
+<p>See how we use string interpolation to fill in the folder name for the container's entrypoint?</p><p>Next, we use a transition rule to force the container to be built for Linux X86_64:</p><pre><code class="python"><span class="comment"># We always want to create the image for Linux</span>
 <span class="function">platform_transition_filegroup</span>(
     <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;image&quot;</span>,
     <span class="variable">srcs</span> <span class="operator">=</span> [<span class="string">&quot;:image_&quot;</span>],
@@ -206,21 +206,33 @@ Target //simple_layer:image up-to-date:
 INFO: Elapsed time: 0.279s, Critical Path: 0.00s
 INFO: 1 process: 1 internal.
 INFO: Build completed successfully, 1 total action
-</code></pre><p>... and inspect <code>./bazel-out</code>. Bazel tells you the exact path to the <code>image_</code>.</p><h3 id="4--the-push">4. The Push</h3><p>We just need to add one more target to the build file before we can push the image to the container registry:</p><pre><code># Bazel target for pushing the Linux image to the docker registry
-oci_push(
-    name = &quot;push&quot;,
-    image = &quot;:image&quot;,
-    remote_tags = [&quot;latest&quot;],
-    # override with -- --repository foo.bar/org/image
-    repository = &quot;index.docker.io/renerocksai/simple_layer&quot;,
+</code></pre><p>... and inspect <code>./bazel-out</code>. Bazel tells you the exact path to the <code>image_</code>.</p><h3 id="4--the-load">4. The Load</h3><p>While inspecting the image is surely interesting, we usually want to load the image so we can run it.</p><p>There is a bazel rule for that: <code>oci_load</code>. When we append the following lines to <code>BUILD.bazel</code>:</p><pre><code class="python"><span class="comment"># Load will immediately load the image (eg: docker load)</span>
+<span class="function">oci_load</span>(
+    <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;load&quot;</span>,
+    <span class="variable">image</span> <span class="operator">=</span> <span class="string">&quot;:image&quot;</span>,
+    <span class="variable">repo_tags</span> <span class="operator">=</span> [
+        <span class="string">&quot;distroless/simple_layer:latest&quot;</span>,
+    ],
 )
-</code></pre><p>This will push the <code>simple_layer</code> image with the tag <code>latest</code> (you can add more) to the docker registry:</p><pre><code>bazel run -c opt //simple_layer:push
+</code></pre>
+<p>... then we can load the image and run it with the following commands:</p><pre><code>bazel run -c opt //simple_layer:load
+docker run --rm distroless/simple_layer:latest
+</code></pre><h3 id="5--the-push">5. The Push</h3><p>We just need to add one more target to the build file before we can push the image to a container registry:</p><pre><code class="python"><span class="comment"># Bazel target for pushing the Linux image to the docker registry</span>
+<span class="function">oci_push</span>(
+    <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;push&quot;</span>,
+    <span class="variable">image</span> <span class="operator">=</span> <span class="string">&quot;:image&quot;</span>,
+    <span class="variable">remote_tags</span> <span class="operator">=</span> [<span class="string">&quot;latest&quot;</span>],
+    <span class="comment"># override with -- --repository foo.bar/org/image</span>
+    <span class="variable">repository</span> <span class="operator">=</span> <span class="string">&quot;index.docker.io/renerocksai/simple_layer&quot;</span>,
+)
+</code></pre>
+<p>This will push the <code>simple_layer</code> image with the tag <code>latest</code> (you can add more) to the docker registry:</p><pre><code>bazel run -c opt //simple_layer:push
 </code></pre><p>When dealing with maybe a public and a private container registry - or if you just want to try it out <strong>right now</strong>, you can always override the repository on the command line:</p><pre><code>bazel run -c opt //simple_layer:push -- --repository my.server.com/org/image
 </code></pre><h2 id="adding-weights-and-data">Adding weights and data</h2><p>Dockerizing a model that doesn't need any weights was easy. But what if you want to create a complete care-free package of a model plus all required weights and supporting files?</p><p>We'll use the <a href="https://github.com/zml/zml/tree/master/examples/mnist" target="_blank">MNIST example</a> to illustrate how to build Docker images that also contain data files.</p><p>You can <code>bazel run -c opt //mnist:push -- --repository index.docker.io/my_org/zml_mnist</code> in the <code>./examples</code> folder if you want to try it out.</p><p><strong>Note: Please add one more of the following parameters to specify all the platforms your containerized model should support.</strong></p><ul><li>NVIDIA CUDA: <code>--@zml//runtimes:cuda=true</code></li><li>AMD RoCM: <code>--@zml//runtimes:rocm=true</code></li><li>Google TPU: <code>--@zml//runtimes:tpu=true</code></li><li><strong>AVOID CPU:</strong> <code>--@zml//runtimes:cpu=false</code></li></ul><p><strong>Example:</strong></p><pre><code>bazel run //mnist:push -c opt --@zml//runtimes:cuda=true -- --repository index.docker.io/my_org/zml_mnist
 </code></pre><h3 id="manifest-and-archive">Manifest and Archive</h3><p>We only add one more target to the <code>BUILD.bazel</code> to construct the commandline for the <code>entrypoint</code> of the container. All other steps basically remain the same.</p><p>Let's start with creating the manifest and archive:</p><pre><code class="python"><span class="function">load</span>(<span class="string">&quot;@aspect_bazel_lib//lib:expand_template.bzl&quot;</span>, <span class="string">&quot;expand_template&quot;</span>)
 <span class="function">load</span>(<span class="string">&quot;@aspect_bazel_lib//lib:tar.bzl&quot;</span>, <span class="string">&quot;mtree_spec&quot;</span>, <span class="string">&quot;tar&quot;</span>)
 <span class="function">load</span>(<span class="string">&quot;@aspect_bazel_lib//lib:transitions.bzl&quot;</span>, <span class="string">&quot;platform_transition_filegroup&quot;</span>)
-<span class="function">load</span>(<span class="string">&quot;@rules_oci//oci:defs.bzl&quot;</span>, <span class="string">&quot;oci_image&quot;</span>, <span class="string">&quot;oci_push&quot;</span>)
+<span class="function">load</span>(<span class="string">&quot;@rules_oci//oci:defs.bzl&quot;</span>, <span class="string">&quot;oci_image&quot;</span>, <span class="string">&quot;oci_load&quot;</span>, <span class="string">&quot;oci_push&quot;</span>)
 <span class="function">load</span>(<span class="string">&quot;@zml//bazel:zig.bzl&quot;</span>, <span class="string">&quot;zig_cc_binary&quot;</span>)
 
 <span class="comment"># The executable</span>
@@ -273,8 +285,8 @@ oci_push(
     },
     <span class="variable">template</span> <span class="operator">=</span> [
         <span class="string">&quot;./{}/mnist&quot;</span>.<span class="function method">format</span>(<span class="function">package_name</span>()),
-        <span class="string">&quot;mnist.runfiles/:model&quot;</span>,
-        <span class="string">&quot;mnist.runfiles/:data&quot;</span>,
+        <span class="string">&quot;./{}/mnist.runfiles/:model&quot;</span>.<span class="function method">format</span>(<span class="function">package_name</span>()),
+        <span class="string">&quot;./{}/mnist.runfiles/:data&quot;</span>.<span class="function method">format</span>(<span class="function">package_name</span>()),
     ],
 )
 </code></pre>
@@ -293,6 +305,15 @@ oci_push(
     <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;image&quot;</span>,
     <span class="variable">srcs</span> <span class="operator">=</span> [<span class="string">&quot;:image_&quot;</span>],
     <span class="variable">target_platform</span> <span class="operator">=</span> <span class="string">&quot;@zml//platforms:linux_amd64&quot;</span>,
+)
+
+<span class="comment"># Load will immediately load the image (eg: docker load)</span>
+<span class="function">oci_load</span>(
+    <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;load&quot;</span>,
+    <span class="variable">image</span> <span class="operator">=</span> <span class="string">&quot;:image&quot;</span>,
+    <span class="variable">repo_tags</span> <span class="operator">=</span> [
+        <span class="string">&quot;distroless/mnist:latest&quot;</span>,
+    ],
 )
 
 <span class="comment"># Bazel target for pushing the Linux image to our docker registry</span>
