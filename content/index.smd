@@ -1,5 +1,5 @@
 ---
-.title = "Welcome",
+.title = "Welcome to ZML",
 .layout = "index.shtml",
 .author = "renerocksai",
 .date = @date("2024-08-30"),
