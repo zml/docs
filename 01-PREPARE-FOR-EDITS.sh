@@ -30,5 +30,18 @@ done
 # You can use above as a feature, adding .md files that are intended only for
 # GH browsing use, even in the content/ directory; although, I'd advise against
 # such shenanigans
+
+# Note: the below is necessary to copy over .smd (only, no associated .md)
+# files that would not be touched by processor.py because they don't need
+# translation
 mkdir -p ${WORKSPACE}/content
+for i in $(find content -iname '*.smd') ; do
+    SMD_FILE=$(basename $i)
+    SUBDIR=$(dirname $i)
+    SMD_SOURCE=$i
+    SMD_DEST=${WORKSPACE}/${SUBDIR}/${SMD_FILE}
+    echo "$SMD_DEST <-- $SMD_SOURCE"
+    mkdir -p $(dirname $SMD_DEST)
+    cat $SMD_SOURCE > $SMD_DEST
+done
 python processor.py EDIT content zml/docs WORKSPACE
