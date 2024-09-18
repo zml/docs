@@ -26,6 +26,9 @@
   <body>
     <a id="logo" href="/"></a>
     <nav id="menu">
+      <!-- burger menu -->
+      <button id="burger-menu" aria-label="Toggle Menu">&#9776;</button> <!-- Burger menu icon -->
+
       <a href="/">Home</a>
       •
       <a href="/tutorials/getting_started/">Quickstart</a>
@@ -41,6 +44,8 @@
       <a href="https://github.com/zml/zml" target="_blank">Code</a>
       •
       <a href="https://discord.gg/6y72SN2E7H" target="_blank">Discord</a>
+
+
     </nav>
     <!-- <hr style="width:min(600px, 100vw); border-color:#0798b3; color: white; border-top:1px;"> -->
     <aside id="sidebar" class="sidebar">
@@ -152,5 +157,21 @@
         <!-- OPTION 2: ZML only -->
         <!-- &copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> -->
     </footer>
+
+  <!-- burger menu script -->
+  <script>
+      document.getElementById('burger-menu').addEventListener('click', function() {
+        const sidebar = document.getElementById('sidebar');
+        const logo = document.getElementById('logo');
+        const body = document.body;
+
+        // Toggle the 'active' class on sidebar and logo to show/hide them
+        sidebar.classList.toggle('active');
+        logo.classList.toggle('active');
+        
+        // Toggle the 'show-sidebar' class on the body to adjust the grid layout
+        body.classList.toggle('show-sidebar');
+      });
+</script>
   </body>
 </html>
