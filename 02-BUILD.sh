@@ -15,9 +15,7 @@ cd ..
 cp -f ./zml/sources.tar WORKSPACE/assets/
 cp -v ./build.zig* WORKSPACE/
 
-
 cd WORKSPACE
-
 
 echo "Starting Zine build..."
 zig build $@

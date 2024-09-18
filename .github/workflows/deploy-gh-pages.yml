@@ -26,11 +26,6 @@ jobs:
           token: ${{ secrets.ORG_PAT }}
           path: zml
           ref: master
-      - name: test curlit
-        run: |
-          curl -L -o /tmp/test.tar.xz https://mirror.zml.ai/zig/zig-linux-x86_64-0.13.0.tar.xz?source=github-actions
-          ls -alih /tmp/test.tar.xz
-          tar -tf /tmp/test.tar.xz
 
       # Set up Python
       - name: Set up Python
