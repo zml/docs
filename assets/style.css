@@ -352,3 +352,27 @@ li {
     zoom: 1.4;
   }
 }
+@media screen and (max-width: 800px) {
+  #sidebar, #logo {
+    display: none; /* Hide sidebar and logo */
+  }
+
+  body {
+    grid-template-columns: 1fr; /* Make content take full width */
+    grid-template-areas: 
+      "menu"
+      "content"
+      "footer"; /* Rearrange grid areas for mobile */
+  }
+
+  #menu {
+    display: block; /* Ensure the menu stays visible */
+    width: 100%; /* Make sure it spans the full width */
+    padding: 10px 0; /* Optional: Add some padding to #menu */
+    text-align: center;
+  }
+
+  #content {
+    padding: 0 15px; /* Reduce padding for better fit */
+  }
+}
