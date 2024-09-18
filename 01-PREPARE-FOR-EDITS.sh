@@ -1,5 +1,11 @@
 #!/bin/bash
 
+if ! python --version > /dev/null 2>&1  ; then
+    echo "!!!!! PYTHON REQUIRED !!!!"
+    echo "Aborting."
+    exit 1
+fi
+
 set -e
 WORKSPACE=WORKSPACE
 
@@ -24,18 +30,5 @@ done
 # You can use above as a feature, adding .md files that are intended only for
 # GH browsing use, even in the content/ directory; although, I'd advise against
 # such shenanigans
-#
-# We copy the .smd files into the workspace. some of them will be filled with
-# content later.
 mkdir -p ${WORKSPACE}/content
-for i in $(find content -iname '*.smd') ; do
-    SMD_FILE=$(basename $i)
-    SUBDIR=$(dirname $i)
-    SMD_SOURCE=$i
-    SMD_DEST=${WORKSPACE}/${SUBDIR}/${SMD_FILE}
-    echo "$SMD_DEST <-- $SMD_SOURCE"
-    mkdir -p $(dirname $SMD_DEST)
-    cat $SMD_SOURCE > $SMD_DEST
-done
-
 python processor.py EDIT content zml/docs WORKSPACE
