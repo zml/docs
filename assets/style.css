@@ -352,3 +352,58 @@ li {
     zoom: 1.4;
   }
 }
+
+#burger-menu {
+  display: none;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+
+  margin: 0;
+  padding: 0;
+  position: fixed;
+  top: 6px;
+  left: 10px;
+  z-index: 1000; /* Ensure it stays above other elements */
+}
+
+/* Show the burger menu only on small screens */
+@media screen and (max-width: 800px) {
+  #burger-menu {
+    display: inline-block;
+  }
+
+  #menu {
+      margin-left: 40px;
+      width: 85%;
+  }
+}
+
+@media screen and (max-width: 800px) {
+  #sidebar, #logo {
+    display: none; /* Hide sidebar and logo by default */
+  }
+
+  body {
+    grid-template-columns: 1fr; /* Single column layout by default */
+    grid-template-areas:
+      "menu"
+      "content"
+      "footer"; /* Simple grid layout */
+  }
+
+  /* When the sidebar and logo are shown (burger menu active) */
+  body.show-sidebar {
+    grid-template-columns: 250px auto; /* Two columns: sidebar + content */
+    grid-template-areas:
+      "logo menu"
+      "side content"
+      "footer footer"; /* Restore the two-column layout */
+  }
+
+  #sidebar.active, #logo.active {
+    display: block; /* Show sidebar and logo when 'active' */
+  }
+}
