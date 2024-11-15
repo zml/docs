@@ -167,7 +167,8 @@ bazel run -c opt //llama:TinyLlama-Stories-15M -- --prompt=&quot;Once upon a tim
 </code></pre><h4 id="openllama-3b">OpenLLama 3B</h4><pre><code>cd examples
 bazel run -c opt //llama:OpenLLaMA-3B
 bazel run -c opt //llama:OpenLLaMA-3B -- --prompt=&quot;Once upon a time,&quot;
-</code></pre><h4 id="meta-llama-3-8b">Meta Llama 3 8B</h4><p>This model has restrictions, see <a href="https://huggingface.co/meta-llama/Meta-Llama-3-8B" target="_blank">here</a>: it <strong>requires approval from Meta on Huggingface</strong>, which can take a few hours to get granted.</p><p>While waiting for approval, you can already <a href="/howtos/huggingface_access_token/">generate your Huggingface access token</a>.</p><p>Once you've been granted access, you're ready to download a gated model like <code>Meta-Llama-3-8b</code>!</p><pre><code># requires token in $HOME/.cache/huggingface/token
+</code></pre><h4 id="meta-llama-3-8b">Meta Llama 3 8B</h4><p>This model has restrictions, see <a href="https://huggingface.co/meta-llama/Meta-Llama-3-8B" target="_blank">here</a>: it <strong>requires approval from Meta on Huggingface</strong>, which can take a few hours to get granted.</p><p>While waiting for approval, you can already <a href="/howtos/huggingface_access_token/">generate your Huggingface access token</a>.</p><p>Once you've been granted access, you're ready to download a gated model like <code>Meta-Llama-3-8b</code>!</p><pre><code># requires token in $HOME/.cache/huggingface/token, as created by the
+# `huggingface-cli login` command, or the `HUGGINGFACE_TOKEN` environment variable.
 cd examples
 bazel run -c opt //llama:Meta-Llama-3-8b
 bazel run -c opt //llama:Meta-Llama-3-8b -- --promt=&quot;Once upon a time,&quot;
