@@ -17,8 +17,14 @@ pub fn main() !void {
         if (std.ascii.eqlIgnoreCase(subcommand, "help")) {
             help();
         }
+        if (std.ascii.eqlIgnoreCase(subcommand, "edit")) {
+            return error.NotImplemented;
+        }
         if (std.ascii.eqlIgnoreCase(subcommand, "build")) {
             try build(arena.allocator(), &args);
+        }
+        if (std.ascii.eqlIgnoreCase(subcommand, "commit")) {
+            return error.NotImplemented;
         }
     } else {
         help();
@@ -107,7 +113,8 @@ fn build(arena: std.mem.Allocator, args: *std.process.ArgIterator) !void {
     }
 
     // cp -v ./build.zig* WORKSPACE/
-    const workspace_dir = try std.fs.cwd().openDir(WORKSPACE, .{});
+    var workspace_dir = try std.fs.cwd().openDir(WORKSPACE, .{});
+    defer workspace_dir.close();
     try std.fs.cwd().copyFile("build.zig", workspace_dir, "build.zig", .{});
     try std.fs.cwd().copyFile("build.zig.zon", workspace_dir, "build.zig.zon", .{});
 
@@ -121,16 +128,9 @@ fn build(arena: std.mem.Allocator, args: *std.process.ArgIterator) !void {
         try zig_args.append(arg);
     }
     std.log.info("{s}", .{zig_args.items});
-    const zig_result = try std.process.Child.run(.{
-        .allocator = arena,
-        .cwd = "WORKSPACE",
-        .argv = zig_args.items,
-    });
-    if (zig_result.term.Exited != 0) {
-        std.log.err("zig returned: {d}", .{zig_result.term.Exited});
-        std.log.warn("{s}", .{zig_result.stdout});
-        std.log.err("{s}", .{zig_result.stderr});
-        return error.NonzeroExit;
+    try std.process.changeCurDir(WORKSPACE);
+    switch (std.process.execv(arena, zig_args.items)) {
+        else => |e| std.log.err("zig: {any}", .{e}),
     }
 }
 
