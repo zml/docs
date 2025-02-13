@@ -17,7 +17,7 @@ else
 fi
 
 # link-in the assets and layouts
-for d in assets layouts zig_docs; do
+for d in assets layouts zig_docs tools; do
     if [ ! -h ${WORKSPACE}/$d ] ; then
         ln -s ../$d ${WORKSPACE}/$d
     fi

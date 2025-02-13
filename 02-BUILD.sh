@@ -18,4 +18,4 @@ cp -v ./build.zig* WORKSPACE/
 cd WORKSPACE
 
 echo "Starting Zine build..."
-zig build $@
+zig build website $@
