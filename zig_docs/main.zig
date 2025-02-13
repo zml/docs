@@ -9,7 +9,7 @@ const Decl = Walk.Decl;
 const fileSourceHtml = @import("html_render.zig").fileSourceHtml;
 const appendEscaped = @import("html_render.zig").appendEscaped;
 const resolveDeclLink = @import("html_render.zig").resolveDeclLink;
-const renderHref = Decl.renderHref;
+const missing_feature_url_escape = @import("html_render.zig").missing_feature_url_escape;
 
 const gpa = std.heap.wasm_allocator;
 
@@ -60,8 +60,8 @@ export fn unpack(tar_ptr: [*]u8, tar_len: usize) void {
     };
 }
 
-var query_string: std.ArrayListUnmanaged(u8) = .{};
-var query_results: std.ArrayListUnmanaged(Decl.Index) = .{};
+var query_string: std.ArrayListUnmanaged(u8) = .empty;
+var query_results: std.ArrayListUnmanaged(Decl.Index) = .empty;
 
 /// Resizes the query string to be the correct length; returns the pointer to
 /// the query string.
@@ -93,11 +93,11 @@ fn query_exec_fallible(query: []const u8, ignore_case: bool) !void {
         segments: u16,
     };
     const g = struct {
-        var full_path_search_text: std.ArrayListUnmanaged(u8) = .{};
-        var full_path_search_text_lower: std.ArrayListUnmanaged(u8) = .{};
-        var doc_search_text: std.ArrayListUnmanaged(u8) = .{};
+        var full_path_search_text: std.ArrayListUnmanaged(u8) = .empty;
+        var full_path_search_text_lower: std.ArrayListUnmanaged(u8) = .empty;
+        var doc_search_text: std.ArrayListUnmanaged(u8) = .empty;
         /// Each element matches a corresponding query_results element.
-        var scores: std.ArrayListUnmanaged(Score) = .{};
+        var scores: std.ArrayListUnmanaged(Score) = .empty;
     };
 
     // First element stores the size of the list.
@@ -238,8 +238,9 @@ const ErrorIdentifier = packed struct(u64) {
         try out.appendSlice(gpa, "<dt>");
         try out.appendSlice(gpa, name);
         if (has_link) {
-            try out.appendSlice(gpa, " <a");
-            try decl_index.get().fqnAsHref(gpa, out);
+            try out.appendSlice(gpa, " <a href=\"#");
+            _ = missing_feature_url_escape;
+            try decl_index.get().fqn(out);
             try out.appendSlice(gpa, "\">");
             try out.appendSlice(gpa, decl_index.get().extra_info().name);
             try out.appendSlice(gpa, "</a>");
@@ -254,8 +255,8 @@ const ErrorIdentifier = packed struct(u64) {
     }
 };
 
-var string_result: std.ArrayListUnmanaged(u8) = .{};
-var error_set_result: std.StringArrayHashMapUnmanaged(ErrorIdentifier) = .{};
+var string_result: std.ArrayListUnmanaged(u8) = .empty;
+var error_set_result: std.StringArrayHashMapUnmanaged(ErrorIdentifier) = .empty;
 
 export fn decl_error_set(decl_index: Decl.Index) Slice(ErrorIdentifier) {
     return Slice(ErrorIdentifier).init(decl_error_set_fallible(decl_index) catch @panic("OOM"));
@@ -380,7 +381,7 @@ export fn decl_params(decl_index: Decl.Index) Slice(Ast.Node.Index) {
 
 fn decl_fields_fallible(decl_index: Decl.Index) ![]Ast.Node.Index {
     const g = struct {
-        var result: std.ArrayListUnmanaged(Ast.Node.Index) = .{};
+        var result: std.ArrayListUnmanaged(Ast.Node.Index) = .empty;
     };
     g.result.clearRetainingCapacity();
     const decl = decl_index.get();
@@ -402,7 +403,7 @@ fn decl_fields_fallible(decl_index: Decl.Index) ![]Ast.Node.Index {
 
 fn decl_params_fallible(decl_index: Decl.Index) ![]Ast.Node.Index {
     const g = struct {
-        var result: std.ArrayListUnmanaged(Ast.Node.Index) = .{};
+        var result: std.ArrayListUnmanaged(Ast.Node.Index) = .empty;
     };
     g.result.clearRetainingCapacity();
     const decl = decl_index.get();
@@ -671,7 +672,7 @@ fn render_docs(
     defer parsed_doc.deinit(gpa);
 
     const g = struct {
-        var link_buffer: std.ArrayListUnmanaged(u8) = .{};
+        var link_buffer: std.ArrayListUnmanaged(u8) = .empty;
     };
 
     const Writer = std.ArrayListUnmanaged(u8).Writer;
@@ -694,8 +695,9 @@ fn render_docs(
                             g.link_buffer.clearRetainingCapacity();
                             try resolveDeclLink(resolved_decl_index, &g.link_buffer);
 
-                            try writer.writeAll("<a");
-                            try renderHref(writer, g.link_buffer.items);
+                            try writer.writeAll("<a href=\"#");
+                            _ = missing_feature_url_escape;
+                            try writer.writeAll(g.link_buffer.items);
                             try writer.print("\">{}</a>", .{markdown.fmtHtml(content)});
                         } else {
                             try writer.print("{}", .{markdown.fmtHtml(content)});
@@ -815,7 +817,7 @@ export fn find_module_root(pkg: Walk.ModuleIndex) Decl.Index {
 }
 
 /// Set by `set_input_string`.
-var input_string: std.ArrayListUnmanaged(u8) = .{};
+var input_string: std.ArrayListUnmanaged(u8) = .empty;
 
 export fn set_input_string(len: usize) [*]u8 {
     input_string.resize(gpa, len) catch @panic("OOM");
@@ -837,7 +839,7 @@ export fn find_decl() Decl.Index {
     if (result != .none) return result;
 
     const g = struct {
-        var match_fqn: std.ArrayListUnmanaged(u8) = .{};
+        var match_fqn: std.ArrayListUnmanaged(u8) = .empty;
     };
     for (Walk.decls.items, 0..) |*decl, decl_index| {
         g.match_fqn.clearRetainingCapacity();
@@ -886,7 +888,7 @@ export fn type_fn_members(parent: Decl.Index, include_private: bool) Slice(Decl.
 
 export fn namespace_members(parent: Decl.Index, include_private: bool) Slice(Decl.Index) {
     const g = struct {
-        var members: std.ArrayListUnmanaged(Decl.Index) = .{};
+        var members: std.ArrayListUnmanaged(Decl.Index) = .empty;
     };
 
     g.members.clearRetainingCapacity();

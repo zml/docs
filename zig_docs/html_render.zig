@@ -8,11 +8,24 @@ const Decl = Walk.Decl;
 const gpa = std.heap.wasm_allocator;
 const Oom = error{OutOfMemory};
 
+/// Delete this to find out where URL escaping needs to be added.
+pub const missing_feature_url_escape = true;
+
 pub const RenderSourceOptions = struct {
     skip_doc_comments: bool = false,
     skip_comments: bool = false,
     collapse_whitespace: bool = false,
     fn_link: Decl.Index = .none,
+    /// Assumed to be sorted ascending.
+    source_location_annotations: []const Annotation = &.{},
+    /// Concatenated with dom_id.
+    annotation_prefix: []const u8 = "l",
+};
+
+pub const Annotation = struct {
+    file_byte_offset: u32,
+    /// Concatenated with annotation_prefix.
+    dom_id: u32,
 };
 
 pub fn fileSourceHtml(
@@ -25,7 +38,7 @@ pub fn fileSourceHtml(
     const file = file_index.get();
 
     const g = struct {
-        var field_access_buffer: std.ArrayListUnmanaged(u8) = .{};
+        var field_access_buffer: std.ArrayListUnmanaged(u8) = .empty;
     };
 
     const token_tags = ast.tokens.items(.tag);
@@ -47,6 +60,8 @@ pub fn fileSourceHtml(
             }
         }
     }
+
+    var next_annotate_index: usize = 0;
 
     for (
         token_tags[start_token..end_token],
@@ -71,6 +86,18 @@ pub fn fileSourceHtml(
         if (tag == .eof) break;
         const slice = ast.tokenSlice(token_index);
         cursor = start + slice.len;
+
+        // Insert annotations.
+        while (true) {
+            if (next_annotate_index >= options.source_location_annotations.len) break;
+            const next_annotation = options.source_location_annotations[next_annotate_index];
+            if (cursor <= next_annotation.file_byte_offset) break;
+            try out.writer(gpa).print("<span id=\"{s}{d}\"></span>", .{
+                options.annotation_prefix, next_annotation.dom_id,
+            });
+            next_annotate_index += 1;
+        }
+
         switch (tag) {
             .eof => unreachable,
 
@@ -159,8 +186,9 @@ pub fn fileSourceHtml(
                     const fn_link = options.fn_link.get();
                     const fn_token = main_tokens[fn_link.ast_node];
                     if (token_index == fn_token + 1) {
-                        try out.appendSlice(gpa, "<a class=\"tok-fn\"");
-                        try fn_link.fqnAsHref(gpa, out);
+                        try out.appendSlice(gpa, "<a class=\"tok-fn\" href=\"#");
+                        _ = missing_feature_url_escape;
+                        try fn_link.fqn(out);
                         try out.appendSlice(gpa, "\">");
                         try appendEscaped(out, slice);
                         try out.appendSlice(gpa, "</a>");
@@ -193,9 +221,10 @@ pub fn fileSourceHtml(
                     g.field_access_buffer.clearRetainingCapacity();
                     try walkFieldAccesses(file_index, &g.field_access_buffer, field_access_node);
                     if (g.field_access_buffer.items.len > 0) {
-                        try out.appendSlice(gpa, "<a");
-                        try Decl.renderHref(out.writer(gpa), g.field_access_buffer.items);
-                        try out.appendSlice(gpa, ">");
+                        try out.appendSlice(gpa, "<a href=\"#");
+                        _ = missing_feature_url_escape;
+                        try out.appendSlice(gpa, g.field_access_buffer.items);
+                        try out.appendSlice(gpa, "\">");
                         try appendEscaped(out, slice);
                         try out.appendSlice(gpa, "</a>");
                     } else {
@@ -208,9 +237,10 @@ pub fn fileSourceHtml(
                     g.field_access_buffer.clearRetainingCapacity();
                     try resolveIdentLink(file_index, &g.field_access_buffer, token_index);
                     if (g.field_access_buffer.items.len > 0) {
-                        try out.appendSlice(gpa, "<a");
-                        try Decl.renderHref(out.writer(gpa), g.field_access_buffer.items);
-                        try out.appendSlice(gpa, ">");
+                        try out.appendSlice(gpa, "<a href=\"#");
+                        _ = missing_feature_url_escape;
+                        try out.appendSlice(gpa, g.field_access_buffer.items);
+                        try out.appendSlice(gpa, "\">");
                         try appendEscaped(out, slice);
                         try out.appendSlice(gpa, "</a>");
                         break :i;
