@@ -83,10 +83,30 @@ fn setup_workspace() !void {
 
 fn build(arena: std.mem.Allocator, args: *std.process.ArgIterator) !void {
     try setup_workspace();
-    const is_bsd = try is_bsd_tar(arena);
-    _ = args;
 
-    std.log.info("BSD TAR: {}", .{is_bsd});
+    // tar $MAC_TAR_DISABLE_STUFF_FLAG -cf sources.tar zml/*.zig zml/**/*.zig
+    var tar_args = std.ArrayList([]const u8).init(arena);
+    try tar_args.append("tar");
+    if (try is_bsd_tar(arena)) {
+        try tar_args.append("--no-mac-metadata");
+    }
+    try tar_args.appendSlice(&.{ "-cf", "../WORKSPACE/assets/sources.tar" });
+    try find_files(arena, "zml", ".zig", &tar_args, true);
+    const result = try std.process.Child.run(.{
+        .allocator = arena,
+        .cwd = "zml",
+        .argv = tar_args.items,
+    });
+    if (result.term.Exited != 0) {
+        std.log.err("tar returned: {d}", .{result.term.Exited});
+        std.log.warn("{s}", .{result.stdout});
+        std.log.err("{s}", .{result.stderr});
+
+        std.log.info("File_list: {s}", .{tar_args.items});
+        return error.NonzeroExit;
+    }
+
+    _ = args;
 }
 
 fn is_bsd_tar(arena: std.mem.Allocator) !bool {
@@ -103,4 +123,25 @@ fn is_bsd_tar(arena: std.mem.Allocator) !bool {
         return true;
     }
     return false;
+}
+
+fn find_files(arena: std.mem.Allocator, base_path: []const u8, extension: []const u8, results: *std.ArrayList([]const u8), skip_containing: bool) !void {
+    var base_dir = try std.fs.cwd().openDir(base_path, .{ .iterate = true });
+    defer base_dir.close();
+
+    var walker = try base_dir.walk(arena);
+    defer walker.deinit();
+
+    while (try walker.next()) |entry| {
+        if (entry.kind == .file and std.mem.endsWith(u8, entry.path, extension)) {
+            if (skip_containing) {
+                try results.append(try arena.dupe(u8, entry.path));
+                // std.log.debug("* {s}", .{entry.path});
+            } else {
+                const full_path =
+                    try std.fs.path.join(arena, &.{ base_path, entry.path });
+                try results.append(full_path);
+            }
+        }
+    }
 }
