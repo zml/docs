@@ -108,7 +108,7 @@ fn build(arena: std.mem.Allocator, args: *std.process.ArgIterator) !void {
         std.log.warn("{s}", .{result.stdout});
         std.log.err("{s}", .{result.stderr});
 
-        std.log.info("File list was: {s}", .{tar_args.items});
+        std.log.info("File list was: {s}", .{try joinCommandLineArgs(arena, tar_args.items)});
         return error.NonzeroExit;
     }
 
@@ -127,7 +127,7 @@ fn build(arena: std.mem.Allocator, args: *std.process.ArgIterator) !void {
     while (args.next()) |arg| {
         try zig_args.append(arg);
     }
-    std.log.info("{s}", .{zig_args.items});
+    std.log.info("{s}", .{try joinCommandLineArgs(arena, zig_args.items)});
     try std.process.changeCurDir(WORKSPACE);
     switch (std.process.execv(arena, zig_args.items)) {
         else => |e| std.log.err("zig: {any}", .{e}),
@@ -168,4 +168,15 @@ fn find_files(arena: std.mem.Allocator, base_path: []const u8, extension: []cons
             }
         }
     }
+}
+
+fn joinCommandLineArgs(arena: std.mem.Allocator, args: [][]const u8) ![]const u8 {
+    var result = std.ArrayList(u8).init(arena);
+    for (args, 0..) |arg, i| {
+        try result.appendSlice(arg);
+        if (i < args.len - 1) {
+            try result.append(' ');
+        }
+    }
+    return result.items;
 }
