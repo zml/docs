@@ -1,6 +1,12 @@
 const std = @import("std");
 
 const WORKSPACE = "WORKSPACE";
+const LINK_DIRS: [4][]const u8 = .{
+    "assets",
+    "layouts",
+    "zig_docs",
+    "tools",
+};
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -18,7 +24,7 @@ pub fn main() !void {
             help();
         }
         if (std.ascii.eqlIgnoreCase(subcommand, "edit")) {
-            return error.NotImplemented;
+            try edit(arena.allocator());
         }
         if (std.ascii.eqlIgnoreCase(subcommand, "build")) {
             try build(arena.allocator(), &args);
@@ -81,14 +87,70 @@ fn clone(arena: std.mem.Allocator, args: *std.process.ArgIterator) !void {
     }
 }
 
-fn setup_workspace() !void {
+fn setup_workspace(arena: std.mem.Allocator) !void {
     if (!is_dir_present(WORKSPACE)) {
         try std.fs.cwd().makeDir(WORKSPACE);
+    }
+
+    var cwd = std.fs.cwd();
+    var workspace_dir = try cwd.openDir(WORKSPACE, .{});
+    defer workspace_dir.close();
+
+    if (!is_dir_present(try std.fmt.allocPrint(arena, "{s}/{s}", .{ WORKSPACE, "content" }))) {
+        try workspace_dir.makeDir("content");
+    }
+    for (LINK_DIRS) |subpath| {
+        if (!is_dir_present(try std.fmt.allocPrint(arena, "{s}/{s}", .{ WORKSPACE, subpath }))) {
+            const link_dir = try std.fmt.allocPrint(arena, "../{s}", .{subpath});
+            std.log.debug("{s} -> {s}", .{ subpath, link_dir });
+            try workspace_dir.symLink(link_dir, subpath, .{});
+        }
+    }
+}
+
+fn edit(arena: std.mem.Allocator) !void {
+    try setup_workspace(arena);
+
+    //  now create the .smd files
+    //  NOTE: the .smd files are the authoritative source of existence
+    //        meaning: if there is no .smd file in contents, its associated
+    //        `.md` file will not move into the workspace.
+    //  You can use above as a feature, adding .md files that are intended only for
+    //  GH browsing use, even in the content/ directory; although, I'd advise against
+    //  such shenanigans
+    //
+    //  Note: the below is necessary to copy over .smd (only, no associated .md)
+    //  files that would not be touched by processor.py because they don't need
+    //  translation
+    var cwd = std.fs.cwd();
+    var content_src_dir = try cwd.openDir("content", .{ .iterate = true });
+    defer content_src_dir.close();
+
+    var workspace_dir = try cwd.openDir(WORKSPACE, .{});
+    defer workspace_dir.close();
+    var content_dest_dir = try workspace_dir.openDir("content", .{});
+    defer content_dest_dir.close();
+
+    var walker = try content_src_dir.walk(arena);
+    defer walker.deinit();
+
+    while (try walker.next()) |entry| {
+        if (entry.kind == .directory) {
+            try content_dest_dir.makePath(entry.path);
+        }
+        if (entry.kind == .file and std.mem.endsWith(u8, entry.path, ".smd")) {
+            try content_src_dir.copyFile(entry.path, content_dest_dir, entry.path, .{});
+        }
+    }
+
+    // python processor.py EDIT content zml/docs WORKSPACE
+    switch (std.process.execv(arena, &.{ "python", "processor.py", "EDIT", "content", "zml/docs", "WORKSPACE" })) {
+        else => |e| std.log.err("python: {any}", .{e}),
     }
 }
 
 fn build(arena: std.mem.Allocator, args: *std.process.ArgIterator) !void {
-    try setup_workspace();
+    try setup_workspace(arena);
 
     // tar $MAC_TAR_DISABLE_STUFF_FLAG -cf sources.tar zml/*.zig zml/**/*.zig
     var tar_args = std.ArrayList([]const u8).init(arena);
