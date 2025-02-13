@@ -102,11 +102,36 @@ fn build(arena: std.mem.Allocator, args: *std.process.ArgIterator) !void {
         std.log.warn("{s}", .{result.stdout});
         std.log.err("{s}", .{result.stderr});
 
-        std.log.info("File_list: {s}", .{tar_args.items});
+        std.log.info("File list was: {s}", .{tar_args.items});
         return error.NonzeroExit;
     }
 
-    _ = args;
+    // cp -v ./build.zig* WORKSPACE/
+    const workspace_dir = try std.fs.cwd().openDir(WORKSPACE, .{});
+    try std.fs.cwd().copyFile("build.zig", workspace_dir, "build.zig", .{});
+    try std.fs.cwd().copyFile("build.zig.zon", workspace_dir, "build.zig.zon", .{});
+
+    // cd WORKSPACE
+    // echo "Starting Zine build..."
+    // zig build website $@
+    std.log.info("Starting Zine build...", .{});
+    var zig_args = std.ArrayList([]const u8).init(arena);
+    try zig_args.appendSlice(&.{ "zig", "build", "website" });
+    while (args.next()) |arg| {
+        try zig_args.append(arg);
+    }
+    std.log.info("{s}", .{zig_args.items});
+    const zig_result = try std.process.Child.run(.{
+        .allocator = arena,
+        .cwd = "WORKSPACE",
+        .argv = zig_args.items,
+    });
+    if (zig_result.term.Exited != 0) {
+        std.log.err("zig returned: {d}", .{zig_result.term.Exited});
+        std.log.warn("{s}", .{zig_result.stdout});
+        std.log.err("{s}", .{zig_result.stderr});
+        return error.NonzeroExit;
+    }
 }
 
 fn is_bsd_tar(arena: std.mem.Allocator) !bool {
@@ -136,7 +161,6 @@ fn find_files(arena: std.mem.Allocator, base_path: []const u8, extension: []cons
         if (entry.kind == .file and std.mem.endsWith(u8, entry.path, extension)) {
             if (skip_containing) {
                 try results.append(try arena.dupe(u8, entry.path));
-                // std.log.debug("* {s}", .{entry.path});
             } else {
                 const full_path =
                     try std.fs.path.join(arena, &.{ base_path, entry.path });
