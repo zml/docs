@@ -1,4 +1,5 @@
 const std = @import("std");
+const shell = @import("shell.zig");
 
 const WORKSPACE = "WORKSPACE";
 const LINK_DIRS: [4][]const u8 = .{
@@ -39,7 +40,7 @@ pub fn main() !void {
 
 fn help() void {
     const msg =
-        \\Usage: zig build prepare -- command [opts]
+        \\Usage: zig build tool -- command [opts]
         \\
         \\Commands in order:
         \\-1: help               : prints this help message
@@ -51,17 +52,8 @@ fn help() void {
     std.debug.print("{s}\n", .{msg});
 }
 
-fn is_dir_present(dirname: []const u8) bool {
-    var dir: ?std.fs.Dir = std.fs.cwd().openDir(dirname, .{}) catch null;
-    if (dir) |*d| {
-        defer d.close();
-        return true;
-    }
-    return false;
-}
-
 fn clone(arena: std.mem.Allocator, args_: ?*std.process.ArgIterator) !void {
-    if (is_dir_present("zml")) {
+    if (shell.is_dir_present("zml")) {
         std.log.err("zml dir is present, cannot clone!", .{});
         return error.ZmlDirPresent;
     }
@@ -82,7 +74,10 @@ fn clone(arena: std.mem.Allocator, args_: ?*std.process.ArgIterator) !void {
                 .argv = &.{ "git", "-C", "zml", "checkout", branch },
             });
             if (result2.term.Exited != 0) {
-                std.log.err("git checkout >{s}< returned: {d}", .{ branch, result2.term.Exited });
+                std.log.err("git checkout >{s}< returned: {d}", .{
+                    branch,
+                    result2.term.Exited,
+                });
                 return error.NonzeroExit;
             }
         }
@@ -91,10 +86,10 @@ fn clone(arena: std.mem.Allocator, args_: ?*std.process.ArgIterator) !void {
 }
 
 fn setup_workspace(arena: std.mem.Allocator) !void {
-    if (!is_dir_present("zml")) {
+    if (!shell.is_dir_present("zml")) {
         try clone(arena, null);
     }
-    if (!is_dir_present(WORKSPACE)) {
+    if (!shell.is_dir_present(WORKSPACE)) {
         try std.fs.cwd().makeDir(WORKSPACE);
     }
 
@@ -102,11 +97,21 @@ fn setup_workspace(arena: std.mem.Allocator) !void {
     var workspace_dir = try cwd.openDir(WORKSPACE, .{});
     defer workspace_dir.close();
 
-    if (!is_dir_present(try std.fmt.allocPrint(arena, "{s}/{s}", .{ WORKSPACE, "content" }))) {
+    const target_dir = try std.fmt.allocPrint(
+        arena,
+        "{s}/{s}",
+        .{ WORKSPACE, "content" },
+    );
+    if (!shell.is_dir_present(target_dir)) {
         try workspace_dir.makeDir("content");
     }
     for (LINK_DIRS) |subpath| {
-        if (!is_dir_present(try std.fmt.allocPrint(arena, "{s}/{s}", .{ WORKSPACE, subpath }))) {
+        const sub_dir = try std.fmt.allocPrint(
+            arena,
+            "{s}/{s}",
+            .{ WORKSPACE, subpath },
+        );
+        if (!shell.is_dir_present(sub_dir)) {
             const link_dir = try std.fmt.allocPrint(arena, "../{s}", .{subpath});
             std.log.debug("{s} -> {s}", .{ subpath, link_dir });
             try workspace_dir.symLink(link_dir, subpath, .{});
@@ -153,7 +158,14 @@ fn edit(arena: std.mem.Allocator) !void {
     std.log.info("EDIT in ./{s}/", .{WORKSPACE});
 
     // python processor.py EDIT content zml/docs WORKSPACE
-    switch (std.process.execv(arena, &.{ "python", "processor.py", "EDIT", "content", "zml/docs", "WORKSPACE" })) {
+    switch (std.process.execv(arena, &.{
+        "python",
+        "processor.py",
+        "EDIT",
+        "content",
+        "zml/docs",
+        "WORKSPACE",
+    })) {
         else => |e| std.log.err("python: {any}", .{e}),
     }
     unreachable;
@@ -165,11 +177,11 @@ fn build(arena: std.mem.Allocator, args: *std.process.ArgIterator) !void {
     // tar $MAC_TAR_DISABLE_STUFF_FLAG -cf sources.tar zml/*.zig zml/**/*.zig
     var tar_args = std.ArrayList([]const u8).init(arena);
     try tar_args.append("tar");
-    if (try is_bsd_tar(arena)) {
+    if (try shell.is_bsd_tar(arena)) {
         try tar_args.append("--no-mac-metadata");
     }
     try tar_args.appendSlice(&.{ "-cf", "../WORKSPACE/assets/sources.tar" });
-    try find_files(arena, "zml", ".zig", &tar_args, true);
+    try shell.find_files(arena, "zml", ".zig", &tar_args, true);
     const result = try std.process.Child.run(.{
         .allocator = arena,
         .cwd = "zml",
@@ -180,7 +192,9 @@ fn build(arena: std.mem.Allocator, args: *std.process.ArgIterator) !void {
         std.log.warn("{s}", .{result.stdout});
         std.log.err("{s}", .{result.stderr});
 
-        std.log.info("File list was: {s}", .{try joinCommandLineArgs(arena, tar_args.items)});
+        std.log.info("File list was: {s}", .{
+            try shell.joinCommandLineArgs(arena, tar_args.items),
+        });
         return error.NonzeroExit;
     }
 
@@ -199,57 +213,10 @@ fn build(arena: std.mem.Allocator, args: *std.process.ArgIterator) !void {
     while (args.next()) |arg| {
         try zig_args.append(arg);
     }
-    std.log.info("{s}", .{try joinCommandLineArgs(arena, zig_args.items)});
+    std.log.info("{s}", .{try shell.joinCommandLineArgs(arena, zig_args.items)});
     try std.process.changeCurDir(WORKSPACE);
     switch (std.process.execv(arena, zig_args.items)) {
         else => |e| std.log.err("zig: {any}", .{e}),
     }
     unreachable;
-}
-
-fn is_bsd_tar(arena: std.mem.Allocator) !bool {
-    const result = try std.process.Child.run(.{
-        .allocator = arena,
-        .argv = &.{ "tar", "--version" },
-    });
-    if (result.term.Exited != 0) {
-        std.log.err("tar returned: {d}", .{result.term.Exited});
-        return error.NonzeroExit;
-    }
-
-    if (std.mem.indexOf(u8, result.stdout, "bsdtar")) |_| {
-        return true;
-    }
-    return false;
-}
-
-fn find_files(arena: std.mem.Allocator, base_path: []const u8, extension: []const u8, results: *std.ArrayList([]const u8), skip_containing: bool) !void {
-    var base_dir = try std.fs.cwd().openDir(base_path, .{ .iterate = true });
-    defer base_dir.close();
-
-    var walker = try base_dir.walk(arena);
-    defer walker.deinit();
-
-    while (try walker.next()) |entry| {
-        if (entry.kind == .file and std.mem.endsWith(u8, entry.path, extension)) {
-            if (skip_containing) {
-                try results.append(try arena.dupe(u8, entry.path));
-            } else {
-                const full_path =
-                    try std.fs.path.join(arena, &.{ base_path, entry.path });
-                try results.append(full_path);
-            }
-        }
-    }
-}
-
-fn joinCommandLineArgs(arena: std.mem.Allocator, args: [][]const u8) ![]const u8 {
-    var result = std.ArrayList(u8).init(arena);
-    for (args, 0..) |arg, i| {
-        try result.appendSlice(arg);
-        if (i < args.len - 1) {
-            try result.append(' ');
-        }
-    }
-    return result.items;
 }

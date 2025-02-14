@@ -1,5 +1,5 @@
 const std = @import("std");
 
 pub fn main() !void {
-    std.debug.print("hello, world\n", .{});
+    std.debug.print("All your codebase\n", .{});
 }

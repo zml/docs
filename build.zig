@@ -13,12 +13,12 @@ pub fn build(b: *std.Build) !void {
     _ = serve_step;
 
     const processor_exe = try buildTextProcessor(b, target, optimize);
-    const prepare_exe = try buildPrepareWorkspaceTool(b, target, optimize);
+    const tool_exe = try buildTool(b, target, optimize);
 
     // Invoking the default step also builds the website
     // b.getInstallStep().dependOn(website_step);
     b.installArtifact(processor_exe);
-    b.installArtifact(prepare_exe);
+    b.installArtifact(tool_exe);
 }
 
 /// build the text pre- and post processor
@@ -144,11 +144,11 @@ fn buildWebSite(b: *std.Build, docs_wasm: *std.Build.Step.Compile) !struct {
 }
 
 /// build the Workspace Preparation tool
-fn buildPrepareWorkspaceTool(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) !*std.Build.Step.Compile {
+fn buildTool(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) !*std.Build.Step.Compile {
     // text pre- and post-processor
     const exe = b.addExecutable(.{
-        .name = "prepare",
-        .root_source_file = b.path("tools/prepare.zig"),
+        .name = "tool",
+        .root_source_file = b.path("tools/tool.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -157,7 +157,7 @@ fn buildPrepareWorkspaceTool(b: *std.Build, target: std.Build.ResolvedTarget, op
     if (b.args) |args| {
         run_cmd.addArgs(args);
     }
-    const run_step = b.step("prepare", "Run the workspace preparation tool");
+    const run_step = b.step("tool", "Run the workspace preparation tool");
     run_step.dependOn(&run_cmd.step);
     return exe;
 }
