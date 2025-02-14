@@ -40,7 +40,7 @@ pub fn main() !void {
 fn help() void {
     const msg =
         \\Usage: zig build prepare -- command [opts]
-        \\ 
+        \\
         \\Commands in order:
         \\-1: help               : prints this help message
         \\ 0: clone [gitref]     : clones zml and optionally checks out gitref
@@ -85,6 +85,7 @@ fn clone(arena: std.mem.Allocator, args: *std.process.ArgIterator) !void {
             return error.NonzeroExit;
         }
     }
+    std.log.info("ZML cloned into ./zml", .{});
 }
 
 fn setup_workspace(arena: std.mem.Allocator) !void {
@@ -106,6 +107,7 @@ fn setup_workspace(arena: std.mem.Allocator) !void {
             try workspace_dir.symLink(link_dir, subpath, .{});
         }
     }
+    std.log.info("Workspace ./{s}/ created!", .{WORKSPACE});
 }
 
 fn edit(arena: std.mem.Allocator) !void {
@@ -143,10 +145,13 @@ fn edit(arena: std.mem.Allocator) !void {
         }
     }
 
+    std.log.info("EDIT in ./{s}/", .{WORKSPACE});
+
     // python processor.py EDIT content zml/docs WORKSPACE
     switch (std.process.execv(arena, &.{ "python", "processor.py", "EDIT", "content", "zml/docs", "WORKSPACE" })) {
         else => |e| std.log.err("python: {any}", .{e}),
     }
+    unreachable;
 }
 
 fn build(arena: std.mem.Allocator, args: *std.process.ArgIterator) !void {
@@ -194,6 +199,7 @@ fn build(arena: std.mem.Allocator, args: *std.process.ArgIterator) !void {
     switch (std.process.execv(arena, zig_args.items)) {
         else => |e| std.log.err("zig: {any}", .{e}),
     }
+    unreachable;
 }
 
 fn is_bsd_tar(arena: std.mem.Allocator) !bool {
