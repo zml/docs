@@ -60,7 +60,7 @@ fn is_dir_present(dirname: []const u8) bool {
     return false;
 }
 
-fn clone(arena: std.mem.Allocator, args: *std.process.ArgIterator) !void {
+fn clone(arena: std.mem.Allocator, args_: ?*std.process.ArgIterator) !void {
     if (is_dir_present("zml")) {
         std.log.err("zml dir is present, cannot clone!", .{});
         return error.ZmlDirPresent;
@@ -75,20 +75,25 @@ fn clone(arena: std.mem.Allocator, args: *std.process.ArgIterator) !void {
         return error.NonzeroExit;
     }
 
-    if (args.next()) |branch| {
-        const result2 = try std.process.Child.run(.{
-            .allocator = arena,
-            .argv = &.{ "git", "-C", "zml", "checkout", branch },
-        });
-        if (result2.term.Exited != 0) {
-            std.log.err("git checkout >{s}< returned: {d}", .{ branch, result2.term.Exited });
-            return error.NonzeroExit;
+    if (args_) |args| {
+        if (args.next()) |branch| {
+            const result2 = try std.process.Child.run(.{
+                .allocator = arena,
+                .argv = &.{ "git", "-C", "zml", "checkout", branch },
+            });
+            if (result2.term.Exited != 0) {
+                std.log.err("git checkout >{s}< returned: {d}", .{ branch, result2.term.Exited });
+                return error.NonzeroExit;
+            }
         }
     }
     std.log.info("ZML cloned into ./zml", .{});
 }
 
 fn setup_workspace(arena: std.mem.Allocator) !void {
+    if (!is_dir_present("zml")) {
+        try clone(arena, null);
+    }
     if (!is_dir_present(WORKSPACE)) {
         try std.fs.cwd().makeDir(WORKSPACE);
     }
