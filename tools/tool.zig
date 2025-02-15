@@ -193,7 +193,7 @@ fn build(arena: std.mem.Allocator, args: *std.process.ArgIterator) !void {
         std.log.err("{s}", .{result.stderr});
 
         std.log.info("File list was: {s}", .{
-            try shell.joinCommandLineArgs(arena, tar_args.items),
+            try shell.joinArgs(arena, tar_args.items, .{}),
         });
         return error.NonzeroExit;
     }
@@ -213,7 +213,7 @@ fn build(arena: std.mem.Allocator, args: *std.process.ArgIterator) !void {
     while (args.next()) |arg| {
         try zig_args.append(arg);
     }
-    std.log.info("{s}", .{try shell.joinCommandLineArgs(arena, zig_args.items)});
+    std.log.info("{s}", .{try shell.joinArgs(arena, zig_args.items, .{})});
     try std.process.changeCurDir(WORKSPACE);
     switch (std.process.execv(arena, zig_args.items)) {
         else => |e| std.log.err("zig: {any}", .{e}),
