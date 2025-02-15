@@ -101,6 +101,102 @@ const Action = union(enum) {
     }
 };
 
+/// Match file from `strip_path` into `prepend_path`:
+///
+/// Example:
+///     file         = source/dir/foo.md
+///     strip_path   = source/dir
+///     prepend_path = dest/dir
+///     ----------------------------------
+///     -> return      dest/dir/foo.md
+///
+/// Errors out if file is not in strip_path. Allocates.
+pub fn get_matching_path(
+    alloc: std.mem.Allocator,
+    file_: []const u8,
+    strip_path_: []const u8,
+    prepend_path_: []const u8,
+) ![]const u8 {
+    const strip_path = shell.remove_enclosing_slashes(strip_path_);
+    const file = shell.remove_enclosing_slashes(file_);
+    if (!std.mem.startsWith(u8, file, strip_path)) {
+        return error.FileNotInStripPath;
+    }
+    const prepend_path = shell.remove_enclosing_slashes(prepend_path_);
+    const sub_path = shell.remove_enclosing_slashes(file[strip_path.len..]);
+    return try std.fmt.allocPrint(alloc, "{s}/{s}", .{ prepend_path, sub_path });
+}
+
+test get_matching_path {
+    const alloc = std.testing.allocator;
+    {
+        const source_file = "zml/doc/intro.md";
+        const source_dir = "zml/doc/";
+        const dest_dir = "WORKSPACE/content";
+
+        const moved_file = try get_matching_path(alloc, source_file, source_dir, dest_dir);
+        defer alloc.free(moved_file);
+        try std.testing.expectEqualStrings("WORKSPACE/content/intro.md", moved_file);
+    }
+}
+
+/// Resolve the relative link within the context of the md_root.
+/// Allocates.
+///
+/// DOES NOT WORK WITH FICTIONAL FILES!!! (i.e. is not string based but fs based)
+///
+/// md_root: The root directory for markdown files.
+/// md_file: The path to the markdown file containing the link
+/// relative_link: The relative link target contained in the markdown file.
+/// returns: The resolved path of the link within md_root.
+///
+/// Example:
+///     md_root       = zml/docs
+///     md_file       = zml/docs/tutorials/foo.md
+///     relative_link = ../learn/tensors.md
+///     ----------------------------------------------
+///     -> return       learn/tensors.md
+///
+fn resolve_link(
+    alloc: std.mem.Allocator,
+    md_root: []const u8,
+    md_file: []const u8,
+    relative_link: []const u8,
+) ![]const u8 {
+    const abs_md_root = try std.fs.cwd().realpathAlloc(alloc, md_root);
+    defer alloc.free(abs_md_root);
+    const abs_md_file = try std.fs.cwd().realpathAlloc(alloc, md_file);
+    defer alloc.free(abs_md_file);
+
+    const abs_md_dir = std.fs.path.dirname(abs_md_file) orelse return error.NoSuchDir;
+    const rel_path = try std.fmt.allocPrint(
+        alloc,
+        "{s}/{s}",
+        .{ abs_md_dir, relative_link },
+    );
+    defer alloc.free(rel_path);
+
+    const abs_link_path = try std.fs.cwd().realpathAlloc(alloc, rel_path);
+    defer alloc.free(abs_link_path);
+    std.debug.assert(std.mem.startsWith(u8, abs_link_path, abs_md_root));
+    return try alloc.dupe(u8, abs_link_path[abs_md_root.len + 1 ..]);
+}
+
+test resolve_link {
+    const alloc = std.testing.allocator;
+    {
+        // NOTE: this test only works if those files are present!!!
+        // TODO: create temp dirs and files
+        const md_root = "zml/docs";
+        const md_file = "zml/docs/tutorials/getting_started.md";
+        const relative_link = "../learn/concepts.md";
+        const result = try resolve_link(alloc, md_root, md_file, relative_link);
+        defer alloc.free(result);
+
+        try std.testing.expectEqualStrings("learn/concepts.md", result);
+    }
+}
+
 pub fn main() !void {
     std.debug.print("All your codebase\n", .{});
 }

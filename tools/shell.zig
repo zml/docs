@@ -120,7 +120,7 @@ pub fn rename_basename(alloc: std.mem.Allocator, path: []const u8, new_name: []c
 
 /// Remove preceding and terminating slashes if present.
 /// No allocation, returns subslice of original.
-fn remove_enclosing_slashes(path: []const u8) []const u8 {
+pub fn remove_enclosing_slashes(path: []const u8) []const u8 {
     if (path.len == 0) return path;
     const start_index: usize = if (path[0] == '/') 1 else 0;
     const end_index: usize = if (path[path.len - 1] == '/') path.len - 1 else path.len;
