@@ -143,6 +143,10 @@ test get_matching_path {
 /// Resolve the relative link within the context of the md_root.
 /// Allocates.
 ///
+/// Used in translation of `../foo/bar.md` markdown links into absolute
+/// `/foo/bar` links for zine. Note that the stripping of the extension is done
+/// outside of this function.
+///
 /// DOES NOT WORK WITH FICTIONAL FILES!!! (i.e. is not string based but fs based)
 ///
 /// md_root: The root directory for markdown files.
@@ -195,6 +199,72 @@ test resolve_link {
         defer alloc.free(result);
 
         try std.testing.expectEqualStrings("learn/concepts.md", result);
+    }
+    // resolve_link(md_root='zml/docs',
+    //              md_file='zml/docs/tutorials/getting_started.md',
+    //              relative_link='../howtos/huggingface_access_token.md')
+    //              -> howtos/huggingface_access_token.md
+    {
+        // NOTE: this test only works if those files are present!!!
+        // TODO: create temp dirs and files
+        const md_root = "zml/docs";
+        const md_file = "zml/docs/tutorials/getting_started.md";
+        const relative_link = "../howtos/huggingface_access_token.md";
+        const result = try resolve_link(alloc, md_root, md_file, relative_link);
+        defer alloc.free(result);
+
+        try std.testing.expectEqualStrings("howtos/huggingface_access_token.md", result);
+    }
+}
+
+/// Creates a relative link for a markdown file given the root directory, the
+/// file location, and the link starting with a slash. Allocates.
+///
+/// Used in translation of absolute zine links `/foo/bar/baz` into relative
+/// markdown links `../bar/baz.md`. Note the + '.md' is done outside of this
+/// function.
+///
+/// Args:
+///     md_root       : The root directory of all markdown files.
+///     md_file       : The path to the markdown file containing the link.
+///     absolute_link : The link that starts with a slash (from root).
+/// Returns:
+///     The resolved relative link.
+///
+fn create_relative_link(
+    alloc: std.mem.Allocator,
+    md_root: []const u8,
+    md_file: []const u8,
+    absolute_link: []const u8,
+) ![]const u8 {
+    if (absolute_link.len == 0) return error.EmptyLink;
+    if (absolute_link[0] != '/') return error.LinkNotAbsolute;
+
+    const link_path = absolute_link[1..];
+    const md_file_dir = std.fs.path.dirname(md_file) orelse return error.NoSuchDir;
+    const relative_path_to_root = try std.fs.path.relative(alloc, md_file_dir, md_root);
+    defer alloc.free(relative_path_to_root);
+    const resolved_link = try std.fs.path.join(alloc, &.{ relative_path_to_root, link_path });
+    return resolved_link;
+}
+
+test create_relative_link {
+    const alloc = std.testing.allocator;
+    {
+        // create_relative_link(md_root='WORKSPACE/content',
+        //                      md_file='WORKSPACE/content/tutorials/getting_started.smd',
+        //                      ansolute_link='/howtos/deploy_on_server')
+        //                      -> resolved_link='../howtos/deploy_on_server'
+        // NOTE: this test only works if those files are present!!!
+        // TODO: create temp dirs and files
+        const md_root = "WORKSPACE/content";
+        const md_file = "WORKSPACE/content/tutorials/getting_started.smd";
+        const absolute_link = "/howtos/deploy_on_server";
+        const result = try create_relative_link(alloc, md_root, md_file, absolute_link);
+        defer alloc.free(result);
+
+        try std.testing.expectEqualStrings("../howtos/deploy_on_server", result);
+        std.debug.print("create_relative_link: {s}\n", .{result});
     }
 }
 

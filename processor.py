@@ -38,7 +38,7 @@ class IgnoreFileAction:
     source_file: str      # the file being processed
     reason: str
 
-@dataclass 
+@dataclass
 class TranslateImageAction:
     source_file: str
     original: str
@@ -46,14 +46,14 @@ class TranslateImageAction:
 
 
 Action = Union[CreateDirAction, TranslateLinkAction, MergeIntoSmdAction,
-               SplitSmdAction, ProcessingFileAction, IgnoreFileAction, 
+               SplitSmdAction, ProcessingFileAction, IgnoreFileAction,
                TranslateImageAction]
 
 
 # helper functions
 def find_files_with_extension(directory: str, extension: str) -> list[str]:
     """
-    Returns a list of files with the given extension within the specified 
+    Returns a list of files with the given extension within the specified
     directory and its subdirectories.
 
     :param directory: The path to the directory to search in.
@@ -122,32 +122,34 @@ def resolve_link(md_root: str, md_file: str, relative_link: str) -> str:
     link_target_path = (md_file_path.parent / relative_link).resolve()
     # Calculate the relative path of the link target within md_root
     resolved_path = link_target_path.relative_to(md_root_path.resolve())
+    print(f"resolve_link(md_root='{md_root}', md_file='{md_file}', relative_link='{relative_link}') -> {resolved_path}")
     return str(resolved_path)
 
-def create_relative_link(md_root: str, md_file: str, relative_link: str) -> str:
+def create_relative_link(md_root: str, md_file: str, absolute_link: str) -> str:
     """
-    Creates a relative link for a markdown file given the root directory, the 
+    Creates a relative link for a markdown file given the root directory, the
     file location, and the link starting with a slash.
-    
+
     Args:
         md_root (str): The root directory of all markdown files.
         md_file (str): The path to the markdown file containing the link.
-        relative_link (str): The link that starts with a slash (from root).
-    
+        absolute_link (str): The link that starts with a slash (from root).
+
     Returns:
         str: The resolved relative link.
     """
-    # Ensure the relative_link starts with a slash and remove it for path operations
-    if not relative_link.startswith('/'):
-        raise ValueError("The relative_link should start with a slash ('/').")
+    # Ensure the absolute_link starts with a slash and remove it for path operations
+    if not absolute_link.startswith('/'):
+        raise ValueError("The absolute_link should start with a slash ('/').")
     # Remove the leading slash from the relative link to make it a relative path
-    link_path = relative_link.lstrip('/')
+    link_path = absolute_link.lstrip('/')
     # Get the directory of the markdown file
     md_file_dir = os.path.dirname(md_file)
     # Compute the relative path from the markdown file to the root
     relative_path_to_root = os.path.relpath(md_root, md_file_dir)
     # Join the computed path with the link path to form the resolved link
     resolved_link = os.path.join(relative_path_to_root, link_path)
+    print(f"create_relative_link(md_root='{md_root}', md_file='{md_file}', absolute_link='{absolute_link}') -> resolved_link='{resolved_link}'")
     return resolved_link
 
 
@@ -191,8 +193,8 @@ class Github2Zine:
             - 'renames' to appropriate .smd
             - returns both rewritten content and renamed file
 
-        If self.dry_run is False, the content is appended to the `smd` file in 
-        the Zine docs collection. 
+        If self.dry_run is False, the content is appended to the `smd` file in
+        the Zine docs collection.
         """
         # read content
         with open(md_path, 'rt') as f:
@@ -282,10 +284,10 @@ class Github2Zine:
             # Replace newlines in link text with spaces
             link_text = match.group(1).replace('\n', ' ')
             # Get the link target and strip any extra whitespace
-            target = match.group(2).strip()  
+            target = match.group(2).strip()
             if target.startswith('http'):
                 # Return the original link if it's a web URL
-                return match.group(0)  
+                return match.group(0)
             else:
                 # Rewrite the link if it's not an HTTP URL
                 rewritten_link = self.rewrite_link(relative_path,
@@ -301,7 +303,7 @@ class Github2Zine:
                                                            img_text,
                                                            img_target)
             return rewritten_image_link
-        
+
         # Replace all links in the markdown content using the handle_link function
         rewritten_content = link_pattern.sub(handle_link, markdown_content)
 
@@ -369,8 +371,8 @@ class Zine2Github:
             - rewrites images
 
         If self.dry_run is False, the input SMD file will be split into its
-        SMD (YAML) part and MD (content) part. The md part will be written to 
-        the GH repo. The SMD part will be written to the SMD file in the 
+        SMD (YAML) part and MD (content) part. The md part will be written to
+        the GH repo. The SMD part will be written to the SMD file in the
         docs repo.
         """
         # read content
@@ -444,10 +446,10 @@ class Zine2Github:
             target_file = os.path.basename(resolved)
             target_dir = os.path.dirname(resolved)
 
-            # find the target file in zine. 
+            # find the target file in zine.
             # it might either be target + '.smd' or target + '/index.smd'
-            # whatever we have to append, we append to target_file. 
-            # but instead .smd, we append .md and instead of /index.smd, we 
+            # whatever we have to append, we append to target_file.
+            # but instead .smd, we append .md and instead of /index.smd, we
             # append /README.md or just '/'
             search_target = target
             if target.startswith('/'):
@@ -493,15 +495,15 @@ class Zine2Github:
         - but ignores image links ![imgtext](imglink)
         - also handles newlines in links
         """
-    
+
         def handle_link(match: re.Match[str]) -> str:
             # Replace newlines in link text with spaces
             link_text = match.group(1).replace('\n', ' ')
             # Get the link target and strip any extra whitespace
-            target = match.group(2).strip()  
+            target = match.group(2).strip()
             if target.startswith('http'):
                 # Return the original link if it's a web URL
-                return match.group(0)  
+                return match.group(0)
             else:
                 # Rewrite the link if it's not an HTTP URL
                 rewritten_link = self.rewrite_link(relative_path, link_text, target)
@@ -515,7 +517,7 @@ class Zine2Github:
             rewritten_image_link = self.rewrite_image_link(relative_path,
                                                            img_text, img_target)
             return rewritten_image_link
-        
+
         # do the image links first, because handle_link creates some
         rewritten_content = self.image_link_pattern.sub(handle_image_link, markdown_content)
         # Replace all links in the markdown content using the handle_link function
@@ -525,7 +527,7 @@ class Zine2Github:
 
     def split_yaml_and_content(self, content: str, smd_src_file: str) -> Tuple[str, str]:
         """
-        Takes the content, splits it into the YAML section and the content 
+        Takes the content, splits it into the YAML section and the content
         section, and then returns the two: yaml, content in a tuple
         """
         _ = self
