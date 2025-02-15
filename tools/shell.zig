@@ -55,3 +55,36 @@ pub fn is_bsd_tar(arena: std.mem.Allocator) !bool {
     }
     return false;
 }
+
+pub fn has_extension(file: []const u8, ext: []const u8) bool {
+    const file_ext = std.fs.path.extension(file);
+    return std.mem.eql(u8, file_ext, ext);
+}
+
+pub fn change_extension(alloc: std.mem.Allocator, file: []const u8, new_ext: []const u8) ![]const u8 {
+    const index = std.mem.lastIndexOfScalar(u8, file, '.') orelse file.len;
+    return std.fmt.allocPrint(alloc, "{s}{s}", .{ file[0..index], new_ext });
+}
+
+test change_extension {
+    const alloc = std.testing.allocator;
+    {
+        const f1 = "hello.md";
+        const r1 = try change_extension(alloc, f1, ".smd");
+        defer alloc.free(r1);
+        try std.testing.expectEqualStrings("hello.smd", r1);
+    }
+    {
+        const f1 = "hello";
+        const r1 = try change_extension(alloc, f1, ".smd");
+        defer alloc.free(r1);
+        try std.testing.expectEqualStrings("hello.smd", r1);
+    }
+}
+
+pub fn rename_basename(alloc: std.mem.Allocator, path: []const u8, new_name: []const u8) ![]const u8 {
+    if (std.fs.path.dirname(path)) |dirname| {
+        return try std.fmt.allocPrint(alloc, "{s}/{s}", .{ dirname, new_name });
+    }
+    return alloc.dupe(new_name); // contract says retval must be freed
+}
