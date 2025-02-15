@@ -179,6 +179,7 @@ fn resolve_link(
     const abs_link_path = try std.fs.cwd().realpathAlloc(alloc, rel_path);
     defer alloc.free(abs_link_path);
     std.debug.assert(std.mem.startsWith(u8, abs_link_path, abs_md_root));
+    std.debug.assert(abs_link_path.len > abs_md_root.len + 1);
     return try alloc.dupe(u8, abs_link_path[abs_md_root.len + 1 ..]);
 }
 
