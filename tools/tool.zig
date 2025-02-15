@@ -181,7 +181,7 @@ fn build(arena: std.mem.Allocator, args: *std.process.ArgIterator) !void {
         try tar_args.append("--no-mac-metadata");
     }
     try tar_args.appendSlice(&.{ "-cf", "../WORKSPACE/assets/sources.tar" });
-    try shell.find_files(arena, "zml", ".zig", &tar_args, true);
+    try shell.find_files(arena, "zml", ".zig", &tar_args, .{ .skip_base_path = true });
     const result = try std.process.Child.run(.{
         .allocator = arena,
         .cwd = "zml",

@@ -1,5 +1,10 @@
 const std = @import("std");
 
+pub fn exists(file: []const u8) bool {
+    _ = try std.fs.cwd().statFile(file) catch return false;
+    return true;
+}
+
 pub fn is_dir_present(dirname: []const u8) bool {
     var dir: ?std.fs.Dir = std.fs.cwd().openDir(dirname, .{}) catch null;
     if (dir) |*d| {
@@ -9,17 +14,18 @@ pub fn is_dir_present(dirname: []const u8) bool {
     return false;
 }
 
-/// Walks directory `base_path`, and inserts all files ending in `extension` into
-/// the passed-in `results` ArrayList. If `skip_containing` is true, the containing
-/// `base_path` will be omitted from paths inserted into the results.
-/// Caller is expected to pass in an arena for simplicity. The arena is only used
-/// in `skip_containing` mode, to dupe the file paths being inserted into `results`.
+/// Walks directory `base_path`, and inserts all files ending in `extension`
+/// into the passed-in `results` ArrayList. If `opts.skip_base_path` is true,
+/// the containing `base_path` will be omitted from paths inserted into the
+/// results. Caller is expected to pass in an arena for simplicity. The arena
+/// is only used in `skip_containing` mode, to dupe the file paths being
+/// inserted into `results`.
 pub fn find_files(
     arena: std.mem.Allocator,
     base_path: []const u8,
     extension: []const u8,
     results: *std.ArrayList([]const u8),
-    skip_containing: bool,
+    opts: struct { skip_base_path: bool = false },
 ) !void {
     var base_dir = try std.fs.cwd().openDir(base_path, .{ .iterate = true });
     defer base_dir.close();
@@ -29,7 +35,7 @@ pub fn find_files(
 
     while (try walker.next()) |entry| {
         if (entry.kind == .file and std.mem.endsWith(u8, entry.path, extension)) {
-            if (skip_containing) {
+            if (opts.skip_base_path) {
                 try results.append(try arena.dupe(u8, entry.path));
             } else {
                 const full_path =
