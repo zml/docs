@@ -5,6 +5,12 @@ pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const pcre2_dep = b.dependency("pcre2", .{
+        .target = target,
+        .optimize = optimize,
+        .@"code-unit-width" = .@"8",
+    });
+
     const docs_wasm = try buildDocsWasm(b, optimize);
     const website_step, const serve_step = try buildWebSite(b, docs_wasm);
     // has to be run with zig build website
@@ -13,6 +19,8 @@ pub fn build(b: *std.Build) !void {
     _ = serve_step;
 
     const processor_exe = try buildTextProcessor(b, target, optimize);
+    processor_exe.linkLibrary(pcre2_dep.artifact("pcre2-8")); // for unicode 8
+
     const tool_exe = try buildTool(b, target, optimize);
 
     // Invoking the default step also builds the website
