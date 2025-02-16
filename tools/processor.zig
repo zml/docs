@@ -1,5 +1,10 @@
 const std = @import("std");
 const shell = @import("shell.zig");
+const LinkMatcher = @import("linkmatcher.zig").LinkMatcher;
+
+test {
+    std.testing.refAllDecls(LinkMatcher);
+}
 
 const Action = union(enum) {
     CreateDir: []const u8,

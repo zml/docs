@@ -27,6 +27,33 @@ pub fn build(b: *std.Build) !void {
     // b.getInstallStep().dependOn(website_step);
     b.installArtifact(processor_exe);
     b.installArtifact(tool_exe);
+
+    const exe_processor_tests = b.addTest(.{
+        .root_source_file = b.path("tools/processor.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    exe_processor_tests.linkLibrary(pcre2_dep.artifact("pcre2-8")); // for unicode 8
+    const run_exe_unit_tests = b.addRunArtifact(exe_processor_tests);
+
+    const exe_shell_test = b.addTest(.{
+        .root_source_file = b.path("tools/shell.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const run_exe_shell_tests = b.addRunArtifact(exe_shell_test);
+
+    const exe_tool_tests = b.addTest(.{
+        .root_source_file = b.path("tools/shell.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const run_exe_tool_tests = b.addRunArtifact(exe_tool_tests);
+
+    const test_step = b.step("test", "Run unit tests");
+    test_step.dependOn(&run_exe_unit_tests.step);
+    test_step.dependOn(&run_exe_shell_tests.step);
+    test_step.dependOn(&run_exe_tool_tests.step);
 }
 
 /// build the text pre- and post processor
