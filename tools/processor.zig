@@ -481,8 +481,8 @@ const Github2Zine = struct {
 
 test "RewriteGhContent" {
     // TODO: need to create these docs if not present, see resolveLink
-    const md = "Hello [world](../learn/concepts.md)!";
-    const smd = "Hello [world](/learn/concepts)!";
+    const md = "Hello [world](../learn/concepts.md)! We love [zig](https://ziglang.org)!";
+    const smd = "Hello [world](/learn/concepts)! We love [zig](https://ziglang.org)!";
     const md_filn = "zml/docs/tutorials/getting_started.md";
 
     const alloc = std.testing.allocator;
