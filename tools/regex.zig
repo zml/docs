@@ -19,6 +19,10 @@ pub const LinkMatch = struct {
 
 const ReplaceLinkFn = fn (allocator: std.mem.Allocator, link_match: LinkMatch) error{OutOfMemory}![]const u8;
 
+pub fn ReplaceLinkCtxFn(Ctx: type) type {
+    return fn (ctx: Ctx, allocator: std.mem.Allocator, link_match: LinkMatch) anyerror![]const u8;
+}
+
 pub const LinkMatcher = struct {
     pub const LinkType = union(enum) {
         GH_Link: struct { re: []const u8 = "(?<!\\!)\\[([^\\]]*?)\\]\\(([^)]+)\\)" },
@@ -84,6 +88,39 @@ pub const LinkMatcher = struct {
 
             // callback for dynamic replacement
             const replacement = try replace_cb(alloc, match);
+            try writer.writeAll(replacement);
+
+            previous_end = match.entire_link.end_offset;
+        }
+
+        // append remaining part of content
+        try writer.writeAll(content[previous_end..]);
+        return output.toOwnedSlice();
+    }
+
+    pub fn replaceCtx(
+        self: *LinkMatcher,
+        T: type,
+        ctx: T,
+        alloc: std.mem.Allocator,
+        content: []const u8,
+        replace_cb: *const ReplaceLinkCtxFn(T),
+    ) ![]const u8 {
+        var output = try std.ArrayList(u8).initCapacity(alloc, content.len * 2);
+        defer output.deinit();
+
+        var writer = output.writer();
+
+        var it = try self.search(content);
+        defer it.deinit();
+        var previous_end: usize = 0;
+
+        while (it.next()) |match| {
+            // copy everything before the match
+            try writer.writeAll(content[previous_end..match.entire_link.start_offset]);
+
+            // callback for dynamic replacement
+            const replacement = try replace_cb(ctx, alloc, match);
             try writer.writeAll(replacement);
 
             previous_end = match.entire_link.end_offset;

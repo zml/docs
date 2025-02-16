@@ -385,7 +385,7 @@ const Github2Zine = struct {
         const original = target_;
 
         const target, const anchor = blk: {
-            if (std.mem.indexOf(u8, target_, '#')) |anchor_pos| {
+            if (std.mem.indexOf(u8, target_, "#")) |anchor_pos| {
                 break :blk .{ target_[0..anchor_pos], target_[anchor_pos..] };
             }
             break :blk .{ target_, "" };
@@ -395,7 +395,7 @@ const Github2Zine = struct {
             if (target.len > 0) {
                 const resolved = try resolve_link(arena, self.gh_path, relative_path, target);
                 var target_file = std.fs.path.basename(resolved);
-                var target_dir = std.fs.path.dirname(resolved);
+                var target_dir = std.fs.path.dirname(resolved) orelse return error.NoSuchDir;
 
                 if (std.mem.eql(u8, target_file, "README.md")) {
                     target_file = ""; // -> index.smd
@@ -405,7 +405,7 @@ const Github2Zine = struct {
                 }
 
                 if (target_dir.len > 0) {
-                    target_dir = std.fmd.allocPrint(arena, "/{s}", .{target_dir});
+                    target_dir = try std.fmt.allocPrint(arena, "/{s}", .{target_dir});
                 }
                 break :blk try std.fmt.allocPrint(arena, "{s}/{s}{s}", .{ target_dir, target_file, anchor });
             } else {
@@ -442,13 +442,60 @@ const Github2Zine = struct {
     ///    - but ignores image links ![imgtext](imglink)
     ///    - also handles newlines in links
     fn rewriteContent(self: *Github2Zine, arena: std.mem.Allocator, markdown_content: []const u8, relative_path: []const u8) ![]const u8 {
-        _ = self;
-        _ = arena;
-        _ = markdown_content;
-        _ = relative_path;
-        unreachable;
+        var link_matcher = try regex.LinkMatcher.init(.{ .GH_Link = .{} });
+
+        const Context = struct {
+            processor: *Github2Zine,
+            relative_path: []const u8,
+        };
+        const context: Context = .{ .processor = self, .relative_path = relative_path };
+
+        const link_cb = struct {
+            fn cb(ctx: Context, alloc: std.mem.Allocator, match: regex.LinkMatch) ![]const u8 {
+                // replace newlines in link_text
+                const link_text = try std.mem.replaceOwned(u8, alloc, match.link_text.content, "\n", " ");
+                // get link target and strip extra whitespace
+                const target = std.mem.trim(u8, match.link_url.content, " \n\r\t");
+                if (std.mem.startsWith(u8, target, "http")) {
+                    return match.entire_link.content;
+                }
+                return try ctx.processor.rewriteLink(alloc, ctx.relative_path, link_text, target);
+            }
+        }.cb;
+        const new_content = try link_matcher.replaceCtx(Context, context, arena, markdown_content, link_cb);
+
+        const img_cb = struct {
+            fn cb(ctx: Context, alloc: std.mem.Allocator, match: regex.LinkMatch) ![]const u8 {
+                // replace newlines in link_text
+                const link_text = try std.mem.replaceOwned(u8, alloc, match.link_text.content, "\n", " ");
+                // get link target and strip extra whitespace
+                const target = std.mem.trim(u8, match.link_url.content, " \n\r\t");
+                return try ctx.processor.rewriteImageLink(alloc, ctx.relative_path, link_text, target);
+            }
+        }.cb;
+
+        var img_matcher = try regex.LinkMatcher.init(.{ .GH_Img = .{} });
+        return try img_matcher.replaceCtx(Context, context, arena, new_content, img_cb);
     }
 };
+
+test "RewriteGhContent" {
+    // TODO: need to create these docs if not present, see resolveLink
+    const md = "Hello [world](../learn/concepts.md)!";
+    const smd = "Hello [world](/learn/concepts)!";
+    const md_filn = "zml/docs/tutorials/getting_started.md";
+
+    const alloc = std.testing.allocator;
+    var arena_ = std.heap.ArenaAllocator.init(alloc);
+    defer arena_.deinit();
+    const arena = arena_.allocator();
+
+    var processor = try Github2Zine.init(alloc, "zml/docs", "content", "WORKSPACE");
+    defer processor.deinit();
+    const replaced = try processor.rewriteContent(arena, md, md_filn);
+
+    try std.testing.expectEqualStrings(smd, replaced);
+}
 
 fn help() void {
     std.debug.print(
