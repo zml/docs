@@ -85,6 +85,10 @@ pub const LinkIterator = struct {
     }
 
     pub fn next(self: *LinkIterator) ?LinkMatch {
+        if (self.start_offset >= self.content.len) {
+            return null;
+        }
+
         const rc = c.pcre2_match_8(
             self.compiled_re,
             self.content.ptr,
@@ -104,9 +108,6 @@ pub const LinkIterator = struct {
         const ovector = c.pcre2_get_ovector_pointer_8(self.match_data);
 
         self.start_offset = ovector[1];
-        if (self.start_offset >= self.content.len) {
-            return null;
-        }
 
         return .{
             .entire_link = .{
