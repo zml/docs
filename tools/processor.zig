@@ -1,9 +1,9 @@
 const std = @import("std");
 const shell = @import("shell.zig");
-const LinkMatcher = @import("linkmatcher.zig").LinkMatcher;
+const regex = @import("regex.zig");
 
 test {
-    std.testing.refAllDecls(LinkMatcher);
+    std.testing.refAllDecls(regex);
 }
 
 const Action = union(enum) {

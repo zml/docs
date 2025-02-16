@@ -17,6 +17,8 @@ pub const LinkMatch = struct {
     link_url: Match,
 };
 
+const ReplaceLinkFn = fn (allocator: std.mem.Allocator, link_match: LinkMatch) error{OutOfMemory}![]const u8;
+
 pub const LinkMatcher = struct {
     pub const LinkType = union(enum) {
         GH_Link: struct { re: []const u8 = "(?<!\\!)\\[([^\\]]*?)\\]\\(([^)]+)\\)" },
@@ -59,6 +61,37 @@ pub const LinkMatcher = struct {
 
     pub fn search(self: *LinkMatcher, content: []const u8) !LinkIterator {
         return try LinkIterator.init(content, self.compiled_re);
+    }
+
+    pub fn replace(
+        self: *LinkMatcher,
+        alloc: std.mem.Allocator,
+        content: []const u8,
+        replace_cb: *const ReplaceLinkFn,
+    ) ![]const u8 {
+        var output = try std.ArrayList(u8).initCapacity(alloc, content.len * 2);
+        defer output.deinit();
+
+        var writer = output.writer();
+
+        var it = try self.search(content);
+        defer it.deinit();
+        var previous_end: usize = 0;
+
+        while (it.next()) |match| {
+            // copy everything before the match
+            try writer.writeAll(content[previous_end..match.entire_link.start_offset]);
+
+            // callback for dynamic replacement
+            const replacement = try replace_cb(alloc, match);
+            try writer.writeAll(replacement);
+
+            previous_end = match.entire_link.end_offset;
+        }
+
+        // append remaining part of content
+        try writer.writeAll(content[previous_end..]);
+        return output.toOwnedSlice();
     }
 };
 
@@ -129,7 +162,7 @@ pub const LinkIterator = struct {
     }
 };
 
-test LinkMatcher {
+test LinkIterator {
     const content =
         \\ Hello, world!
         \\ [a link](an url)!
@@ -161,4 +194,54 @@ test LinkMatcher {
 
     result = it.next();
     try std.testing.expectEqual(null, result);
+}
+
+test LinkMatcher {
+    const alloc = std.testing.allocator;
+
+    const callback = struct {
+        fn cb(_: std.mem.Allocator, _: LinkMatch) ![]const u8 {
+            return "REPLACED";
+        }
+    }.cb;
+
+    // typical case
+    {
+        const content =
+            \\ Hello, world!
+            \\ [a link](an url)!
+            \\ [a second link](with an url)!
+        ;
+        var matcher = try LinkMatcher.init(.{ .GH_Link = .{} });
+        defer matcher.deinit();
+
+        const replaced = try matcher.replace(alloc, content, callback);
+        defer alloc.free(replaced);
+
+        try std.testing.expectEqualStrings(" Hello, world!\n REPLACED!\n REPLACED!", replaced);
+    }
+
+    // edge case 1
+    {
+        const content = "[a link](an url)";
+        var matcher = try LinkMatcher.init(.{ .GH_Link = .{} });
+        defer matcher.deinit();
+
+        const replaced = try matcher.replace(alloc, content, callback);
+        defer alloc.free(replaced);
+
+        try std.testing.expectEqualStrings("REPLACED", replaced);
+    }
+
+    // edge case 2
+    {
+        const content = "Hello, world";
+        var matcher = try LinkMatcher.init(.{ .GH_Link = .{} });
+        defer matcher.deinit();
+
+        const replaced = try matcher.replace(alloc, content, callback);
+        defer alloc.free(replaced);
+
+        try std.testing.expectEqualStrings("Hello, world", replaced);
+    }
 }
