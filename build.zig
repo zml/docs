@@ -195,7 +195,7 @@ fn addTests(
     const run_exe_shell_tests = b.addRunArtifact(exe_shell_test);
 
     const exe_tool_tests = b.addTest(.{
-        .root_source_file = b.path("tools/shell.zig"),
+        .root_source_file = b.path("tools/tool.zig"),
         .target = target,
         .optimize = optimize,
     });

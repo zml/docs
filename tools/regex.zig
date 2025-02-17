@@ -281,4 +281,16 @@ test LinkMatcher {
 
         try std.testing.expectEqualStrings("Hello, world", replaced);
     }
+
+    // edge case 3
+    {
+        const content = "";
+        var matcher = try LinkMatcher.init(.{ .GH_Link = .{} });
+        defer matcher.deinit();
+
+        const replaced = try matcher.replace(alloc, content, callback);
+        defer alloc.free(replaced);
+
+        try std.testing.expectEqualStrings("", replaced);
+    }
 }

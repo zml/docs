@@ -1,5 +1,5 @@
 .{
-    .name = "Zine Website",
+    .name = "ZML Docs Website",
     .version = "0.0.0",
     .dependencies = .{
         .zine = .{

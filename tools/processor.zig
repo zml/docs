@@ -141,7 +141,10 @@ test get_matching_path {
 
         const moved_file = try get_matching_path(alloc, source_file, source_dir, dest_dir);
         defer alloc.free(moved_file);
-        try std.testing.expectEqualStrings("WORKSPACE/content/intro.md", moved_file);
+        try std.testing.expectEqualStrings(
+            "WORKSPACE/content/intro.md",
+            moved_file,
+        );
     }
 }
 
@@ -218,7 +221,10 @@ test resolve_link {
         const result = try resolve_link(alloc, md_root, md_file, relative_link);
         defer alloc.free(result);
 
-        try std.testing.expectEqualStrings("howtos/huggingface_access_token.md", result);
+        try std.testing.expectEqualStrings(
+            "howtos/huggingface_access_token.md",
+            result,
+        );
     }
 }
 
@@ -236,6 +242,13 @@ test resolve_link {
 /// Returns:
 ///     The resolved relative link.
 ///
+/// Example:
+///     md_root       = "WORKSPACE/contents";
+///     md_file       = "WORKSPACE/contents/tutorials/getting_started.smd";
+///     absolute_link = "/howtos/deploy_on_server";
+///     --------------------------------------------------------------------
+///     -> return       ../howtos/deploy_on_server
+///
 fn create_relative_link(
     alloc: std.mem.Allocator,
     md_root: []const u8,
@@ -247,9 +260,16 @@ fn create_relative_link(
 
     const link_path = absolute_link[1..];
     const md_file_dir = std.fs.path.dirname(md_file) orelse return error.NoSuchDir;
-    const relative_path_to_root = try std.fs.path.relative(alloc, md_file_dir, md_root);
+    const relative_path_to_root = try std.fs.path.relative(
+        alloc,
+        md_file_dir,
+        md_root,
+    );
     defer alloc.free(relative_path_to_root);
-    const resolved_link = try std.fs.path.join(alloc, &.{ relative_path_to_root, link_path });
+    const resolved_link = try std.fs.path.join(
+        alloc,
+        &.{ relative_path_to_root, link_path },
+    );
     return resolved_link;
 }
 
@@ -261,9 +281,14 @@ test create_relative_link {
         //                      ansolute_link='/howtos/deploy_on_server')
         //                      -> resolved_link='../howtos/deploy_on_server'
         const md_root = "WORKSPACE/contents";
-        const md_file = "WORKSPACE/contents/tutorials/getting_started.smdd";
+        const md_file = "WORKSPACE/contents/tutorials/getting_started.smd";
         const absolute_link = "/howtos/deploy_on_server";
-        const result = try create_relative_link(alloc, md_root, md_file, absolute_link);
+        const result = try create_relative_link(
+            alloc,
+            md_root,
+            md_file,
+            absolute_link,
+        );
         defer alloc.free(result);
 
         try std.testing.expectEqualStrings("../howtos/deploy_on_server", result);
@@ -283,7 +308,12 @@ const Github2Zine = struct {
     actions: ActionList,
 
     /// Inits an instance. Takes copies of paths. Call deinit() at the end.
-    pub fn init(alloc: std.mem.Allocator, gh_path: []const u8, zine_path: []const u8, workspace_path: []const u8) !Github2Zine {
+    pub fn init(
+        alloc: std.mem.Allocator,
+        gh_path: []const u8,
+        zine_path: []const u8,
+        workspace_path: []const u8,
+    ) !Github2Zine {
         return .{
             .alloc = alloc,
             .gh_path = try alloc.dupe(u8, gh_path),
@@ -441,7 +471,12 @@ const Github2Zine = struct {
     ///    - rewrites markdown links
     ///    - but ignores image links ![imgtext](imglink)
     ///    - also handles newlines in links
-    fn rewriteContent(self: *Github2Zine, arena: std.mem.Allocator, markdown_content: []const u8, relative_path: []const u8) ![]const u8 {
+    fn rewriteContent(
+        self: *Github2Zine,
+        arena: std.mem.Allocator,
+        markdown_content: []const u8,
+        relative_path: []const u8,
+    ) ![]const u8 {
         var link_matcher = try regex.LinkMatcher.init(.{ .GH_Link = .{} });
 
         const Context = struct {
@@ -496,6 +531,35 @@ test "RewriteGhContent" {
 
     try std.testing.expectEqualStrings(smd, replaced);
 }
+
+const Zine2GH = struct {
+    alloc: std.mem.Allocator,
+    /// GitHub docs path (*.md)
+    gh_path: []const u8,
+    /// Zine docs path (*.smd)
+    zine_path: []const u8,
+    /// WORKSPACE path
+    workspace: []const u8,
+    actions: ActionList,
+
+    /// Inits an instance. Takes copies of paths. Call deinit() at the end.
+    pub fn init(alloc: std.mem.Allocator, gh_path: []const u8, zine_path: []const u8, workspace_path: []const u8) !Zine2GH {
+        return .{
+            .alloc = alloc,
+            .gh_path = try alloc.dupe(u8, gh_path),
+            .zine_path = try alloc.dupe(u8, zine_path),
+            .workspace = try alloc.dupe(u8, workspace_path),
+            .actions = ActionList.init(alloc),
+        };
+    }
+
+    pub fn deinit(self: *Zine2GH) void {
+        self.alloc.free(self.gh_path);
+        self.alloc.free(self.zine_path);
+        self.alloc.free(self.workspace);
+        self.actions.deinit();
+    }
+};
 
 fn help() void {
     std.debug.print(
