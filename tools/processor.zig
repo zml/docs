@@ -295,7 +295,7 @@ test create_relative_link {
 
 const ActionList = std.ArrayList(Action);
 
-const Github2Zine = struct {
+pub const Github2Zine = struct {
     alloc: std.mem.Allocator,
     /// GitHub docs path (*.md)
     gh_path: []const u8,
@@ -357,7 +357,8 @@ const Github2Zine = struct {
                 continue;
             }
             try self.processFile(arena, source_md, smd_yaml_src);
-            arena_.reset(.retain_capacity);
+            // DON'T:
+            // _ = arena_.reset(.retain_capacity);
         }
     }
 
@@ -379,10 +380,10 @@ const Github2Zine = struct {
         const content_dir = try std.fs.path.join(arena, &.{ self.workspace, "content" });
 
         // smd_dest_path is smd_src_path in the WORKSPACE
-        const smd_dest_path = get_matching_path(arena, smd_src_path, self.zine_path, content_dir);
+        const smd_dest_path = try get_matching_path(arena, smd_src_path, self.zine_path, content_dir);
 
         // create the workspace subdirs if necessary
-        const smd_dirs = std.fs.path.dirname(smd_dest_path);
+        const smd_dirs = std.fs.path.dirname(smd_dest_path) orelse return error.NoSuchDir;
         if (!shell.is_dir_present(smd_dirs)) {
             try self.actions.append(.{ .CreateDir = smd_dirs });
             try std.fs.cwd().makePath(smd_dirs);
@@ -424,7 +425,7 @@ const Github2Zine = struct {
             if (target.len > 0) {
                 const resolved = try resolve_link(arena, self.gh_path, relative_path, target);
                 var target_file = std.fs.path.basename(resolved);
-                var target_dir = std.fs.path.dirname(resolved) orelse return error.NoSuchDir;
+                var target_dir = std.fs.path.dirname(resolved) orelse "";
 
                 if (std.mem.eql(u8, target_file, "README.md")) {
                     target_file = ""; // -> index.smd
@@ -531,7 +532,7 @@ test "RewriteGhContent" {
     try std.testing.expectEqualStrings(smd, replaced);
 }
 
-const Zine2GH = struct {
+pub const Zine2GH = struct {
     alloc: std.mem.Allocator,
     /// GitHub docs path (*.md)
     gh_path: []const u8,
@@ -609,7 +610,8 @@ const Zine2GH = struct {
                 // content inside the .smd!
             }
             try self.processFile(arena, source_smd, dest_smd_yaml);
-            arena_.reset(.retain_capacity);
+            // DON'T:
+            // _ = arena_.reset(.retain_capacity);
         }
     }
 
@@ -940,22 +942,4 @@ test "RewriteZineContent" {
         try std.testing.expectEqualStrings(expected_smd, new_yaml);
         try std.testing.expectEqualStrings(expected_md, new_md_content);
     }
-}
-
-fn help() void {
-    std.debug.print(
-        \\
-        \\ Usage: zig build process -- EDIT|COMMIT SMD_DIR MD_DIR WORKSPACE_DIR
-        \\
-        \\ The first parameter (mode) defines the conversion direction:
-        \\ EDIT     : creates the WORKSPACE for editing & building with zine.
-        \\ COMMIT   : converts back to the GitHub representation, for committing.
-        \\
-        \\ Example: zig build process -- EDIT content zml/docs WORKSPACE
-    );
-    std.process.exit(1);
-}
-
-pub fn main() !void {
-    std.debug.print("All your codebase\n", .{});
 }

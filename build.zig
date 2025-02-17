@@ -18,39 +18,14 @@ pub fn build(b: *std.Build) !void {
     // has to be run with zig build serve
     _ = serve_step;
 
-    // TODO: integrate into tool.zig, so we have one less executable
-    const processor_exe = try buildTextProcessor(b, target, optimize);
-    processor_exe.linkLibrary(pcre2_dep.artifact("pcre2-8")); // for unicode 8
-
     const tool_exe = try buildTool(b, target, optimize);
-
-    b.installArtifact(processor_exe);
+    tool_exe.linkLibrary(pcre2_dep.artifact("pcre2-8")); // for unicode 8
     b.installArtifact(tool_exe);
 
     //
     // TESTS
     //
     addTests(b, target, optimize, pcre2_dep);
-}
-
-/// build the text pre- and post processor
-/// TODO: integrate into tool.zig, so we have one less executable
-fn buildTextProcessor(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) !*std.Build.Step.Compile {
-    // text pre- and post-processor
-    const exe = b.addExecutable(.{
-        .name = "processor",
-        .root_source_file = b.path("tools/processor.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    const run_cmd = b.addRunArtifact(exe);
-    run_cmd.step.dependOn(b.getInstallStep());
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
-    }
-    const run_step = b.step("process", "Run the text processor");
-    run_step.dependOn(&run_cmd.step);
-    return exe;
 }
 
 /// build the WASM docs target

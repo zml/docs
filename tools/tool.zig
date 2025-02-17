@@ -1,5 +1,6 @@
 const std = @import("std");
 const shell = @import("shell.zig");
+const processor = @import("processor.zig");
 
 const WORKSPACE = "WORKSPACE";
 const LINK_DIRS: [4][]const u8 = .{
@@ -157,18 +158,15 @@ fn edit(arena: std.mem.Allocator) !void {
 
     std.log.info("EDIT in ./{s}/", .{WORKSPACE});
 
-    // python processor.py EDIT content zml/docs WORKSPACE
-    switch (std.process.execv(arena, &.{
-        "python",
-        "processor.py",
-        "EDIT",
-        "content",
-        "zml/docs",
-        "WORKSPACE",
-    })) {
-        else => |e| std.log.err("python: {any}", .{e}),
+    var p = try processor.Github2Zine.init(arena, "zml/docs", "content", WORKSPACE);
+    defer p.deinit();
+    try p.process();
+
+    // now log the results
+    std.log.info("Performed Actions", .{});
+    for (p.actions.items) |action| {
+        std.log.info("- {s}", .{action});
     }
-    unreachable;
 }
 
 fn build(arena: std.mem.Allocator, args: *std.process.ArgIterator) !void {

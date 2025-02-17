@@ -121,7 +121,7 @@ pub fn rename_basename(alloc: std.mem.Allocator, path: []const u8, new_name: []c
     if (std.fs.path.dirname(path)) |dirname| {
         return try std.fmt.allocPrint(alloc, "{s}/{s}", .{ dirname, new_name });
     }
-    return alloc.dupe(new_name); // contract says retval must be freed
+    return alloc.dupe(u8, new_name); // contract says retval must be freed
 }
 
 /// Remove preceding and terminating slashes if present.
