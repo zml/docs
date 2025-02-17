@@ -29,6 +29,7 @@ pub const LinkMatcher = struct {
         GH_Img: struct { re: []const u8 = "!\\[([^\\]]*?)\\]\\(([^)]+)\\)" },
         Zine_Link: struct { re: []const u8 = "(?<!\\!)\\[([^\\]]*?)\\]\\(([^()]*(\\([^()]*\\)[^()]*)*)\\)" },
         Zine_Img: struct { re: []const u8 = "(?<=\\!)\\[([^\\]]*?)\\]\\(([^()]+(?:\\([^()]*\\)[^()]*)*)\\)" },
+        Extract_Img: struct { re: []const u8 = "\\$image\\.url\\('([^']+)'\\)" },
     };
 
     compiled_re: *c.pcre2_code_8,
@@ -176,26 +177,48 @@ pub const LinkIterator = struct {
         }
 
         const ovector = c.pcre2_get_ovector_pointer_8(self.match_data);
+        const ovector_count = c.pcre2_get_ovector_count_8(self.match_data);
 
         self.start_offset = ovector[1];
 
-        return .{
-            .entire_link = .{
-                .content = self.content[ovector[0]..ovector[1]],
-                .start_offset = ovector[0],
-                .end_offset = ovector[1],
-            },
-            .link_text = .{
-                .content = self.content[ovector[2]..ovector[3]],
-                .start_offset = ovector[2],
-                .end_offset = ovector[3],
-            },
-            .link_url = .{
-                .content = self.content[ovector[4]..ovector[5]],
-                .start_offset = ovector[4],
-                .end_offset = ovector[5],
-            },
-        };
+        if (ovector_count >= 3) {
+            return .{
+                .entire_link = .{
+                    .content = self.content[ovector[0]..ovector[1]],
+                    .start_offset = ovector[0],
+                    .end_offset = ovector[1],
+                },
+                .link_text = .{
+                    .content = self.content[ovector[2]..ovector[3]],
+                    .start_offset = ovector[2],
+                    .end_offset = ovector[3],
+                },
+                .link_url = .{
+                    .content = self.content[ovector[4]..ovector[5]],
+                    .start_offset = ovector[4],
+                    .end_offset = ovector[5],
+                },
+            };
+        } else {
+            // Sipmle link search
+            return .{
+                .entire_link = .{
+                    .content = self.content[ovector[0]..ovector[1]],
+                    .start_offset = ovector[0],
+                    .end_offset = ovector[1],
+                },
+                .link_text = .{
+                    .content = self.content[ovector[2]..ovector[3]],
+                    .start_offset = ovector[2],
+                    .end_offset = ovector[3],
+                },
+                .link_url = .{
+                    .content = self.content[ovector[2]..ovector[3]],
+                    .start_offset = ovector[2],
+                    .end_offset = ovector[3],
+                },
+            };
+        }
     }
 };
 

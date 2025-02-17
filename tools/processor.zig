@@ -357,6 +357,7 @@ const Github2Zine = struct {
                 continue;
             }
             try self.processFile(arena, source_md, smd_yaml_src);
+            arena_.reset(.retain_capacity);
         }
     }
 
@@ -398,8 +399,8 @@ const Github2Zine = struct {
 
         // TODO: use buffered writer
         var outfile = try std.fs.cwd().createFile(smd_dest_path, .{});
-        try outfile.writeAll(new_smd_content);
         defer outfile.close();
+        try outfile.writeAll(new_smd_content);
     }
 
     /// Rewrites file links from GH markdown format to zine format
@@ -540,6 +541,8 @@ const Zine2GH = struct {
     workspace: []const u8,
     actions: ActionList,
 
+    imglink_checker: regex.LinkMatcher,
+
     /// Inits an instance. Takes copies of paths. Call deinit() at the end.
     pub fn init(alloc: std.mem.Allocator, gh_path: []const u8, zine_path: []const u8, workspace_path: []const u8) !Zine2GH {
         return .{
@@ -548,6 +551,7 @@ const Zine2GH = struct {
             .zine_path = try alloc.dupe(u8, zine_path),
             .workspace = try alloc.dupe(u8, workspace_path),
             .actions = ActionList.init(alloc),
+            .imglink_checker = try regex.LinkMatcher.init(.{ .Extract_Img = .{} }),
         };
     }
 
@@ -557,7 +561,386 @@ const Zine2GH = struct {
         self.alloc.free(self.workspace);
         self.actions.deinit();
     }
+
+    ///  Process the entire zine docs collection.
+    ///  Calls process_file on all files.
+    ///  Collects actions in `actions`.
+    /// NOTE: This code expects zine_path to be sth like "content".
+    pub fn process(self: *Zine2GH) !void {
+        var smd_sources = std.ArrayList([]const u8).init(self.alloc);
+        defer smd_sources.deinit();
+        var arena_ = std.heap.ArenaAllocator.init(self.alloc);
+        defer arena_.deinit();
+        const arena = arena_.allocator();
+
+        // first, scan all files we need to process
+        // when we actually process, we need to make sure that a corresponding
+        // zine file exists
+        const workspace_content = try std.fs.path.join(arena, &.{ self.workspace, self.zine_path });
+        try shell.find_files(arena, workspace_content, ".smd", &smd_sources, .{});
+        for (smd_sources.items) |source_smd| {
+            try self.actions.append(.{ .ProcessingFile = source_smd });
+
+            // we split the source .SMD into its .smd and .md part
+            const dest_smd_yaml = try get_matching_path(
+                arena,
+                source_smd,
+                workspace_content,
+                self.zine_path,
+            );
+
+            var dest_md = try get_matching_path(
+                arena,
+                workspace_content,
+                self.gh_path,
+            );
+
+            // override index.smd -> README.md so GH displays them as folder default
+            dest_md = try shell.change_extension(arena, dest_md, ".md");
+            if (std.mem.eql(u8, std.fs.path.basename(dest_smd_yaml), "index.smd")) {
+                dest_md = try shell.rename_basename(arena, dest_md, "README.md");
+            }
+
+            if (!shell.exists(dest_md)) {
+                //
+                // intentionally left blank,
+                //
+                // update: further down, we only create it, if there's actual
+                // content inside the .smd!
+            }
+            try self.processFile(arena, source_smd, dest_smd_yaml);
+            arena_.reset(.retain_capacity);
+        }
+    }
+
+    /// Processes a single file:
+    ///     - rewrites links
+    ///     - rewrites images
+    ///
+    /// The input SMD file will be split into its SMD (YAML) part and MD
+    /// (content) part. The md part will be written to the GH repo. The SMD
+    /// part will be written to the SMD file in the docs (this) repo.
+    fn processFile(
+        self: *Zine2GH,
+        arena: std.mem.Allocator,
+        /// the SMD source file
+        source_smd: []const u8,
+        /// the destination for the SMD YAML part
+        dest_smd_yaml: []const u8,
+        /// the destination for the MD part
+        dest_md: []const u8,
+    ) !void {
+        const max_file_size: usize = 2048 * 1024;
+        const content = try std.fs.cwd().readFileAlloc(arena, source_smd, max_file_size);
+        const new_content = self.rewriteContent(arena, content, source_smd);
+        const new_yaml, const new_md_content = try self.splitYamlAndContent(arena, new_content, source_smd);
+
+        // create the smd subdirs if necessary
+        const dest_smd_yaml_dir = std.fs.path.dirname(dest_smd_yaml) orelse return error.NoSuchDir;
+        if (!shell.is_dir_present(dest_smd_yaml_dir)) {
+            try self.actions.append(.{ .CreateDir = dest_smd_yaml_dir });
+            try std.fs.cwd().makePath(dest_smd_yaml_dir);
+        }
+
+        // only if there is actual markdown content, also create the .md subdirs
+        if (new_md_content.len > 0) {
+            const dest_md_dir = std.fs.path.dirname(dest_md) orelse return error.NoSuchDir;
+            if (!shell.is_dir_present(dest_md_dir)) {
+                try self.actions.append(.{ .CreateDir = dest_md_dir });
+                try std.fs.cwd().makePath(dest_md_dir);
+            }
+        }
+
+        // create the target SMD and MD files
+        try self.actions.append(.{
+            .SplitSmd = .{
+                .source_file = source_smd,
+                .smd_dest = dest_smd_yaml,
+                .md_dest = dest_md,
+            },
+        });
+
+        // TODO: use buffered writer
+        var smd_outfile = try std.fs.cwd().createFile(dest_smd_yaml, .{});
+        defer smd_outfile.close();
+        try smd_outfile.writeAll(new_yaml);
+        if (new_md_content.len > 0) {
+            var md_outfile = try std.fs.cwd().createFile(new_md_content, .{});
+            defer md_outfile.close();
+            try md_outfile.writeAll(new_yaml);
+        }
+    }
+
+    /// Rewrites file links from zine SMD format to GH Markdown format
+    fn rewriteLink(
+        self: *Zine2GH,
+        arena: std.mem.Allocator,
+        relative_path: []const u8,
+        link_text: []const u8,
+        target_: []const u8,
+    ) ![]const u8 {
+        const original = target_;
+
+        const target, const anchor = blk: {
+            if (std.mem.indexOf(u8, target_, "#")) |anchor_pos| {
+                break :blk .{ target_[0..anchor_pos], target_[anchor_pos..] };
+            }
+            break :blk .{ target_, "" };
+        };
+
+        if (std.mem.startsWith(u8, original, "#")) {
+            return try std.fmt.allocPrint(arena, "[{s}]({s})", .{ link_text, original });
+        }
+
+        if (!std.mem.startsWith(u8, target, "/") and !std.mem.startsWith(u8, target, "$image")) {
+            std.log.err("Error in {s}: expected $image.url('...') or an absolute path in `{s}`!", .{ relative_path, target });
+            return error.InvalidLink;
+        }
+
+        // deal with $image.url('')
+        if (std.mem.startsWith(u8, target, "$image")) {
+            var it = try self.imglink_checker.search(target);
+            if (it.next()) |match| {
+                const target_url = match.link_url;
+                const link_url = try std.fmt.allocPrint(arena, "![{s}]({s})", .{ link_text, target_url.content });
+                try self.actions.append(.{ .TranslateImage = .{
+                    .source_file = relative_path,
+                    .original = target,
+                    .destination = target_url.content,
+                } });
+                return link_url;
+            } else {
+                std.log.err("Error in {s}: expected $image.url('...')  in `{s}`!", .{ relative_path, target });
+                return error.InvalidLink;
+            }
+        }
+
+        // deal with normal links
+        const new_target = blk: {
+            if (target.len > 0) {
+                const workspace_content = try std.fs.path.join(arena, &.{ self.workspace, self.zine_path });
+                const resolved = try create_relative_link(arena, workspace_content, relative_path, target);
+                var target_file = std.fs.path.basename(resolved);
+                var target_dir = std.fs.path.dirname(resolved) orelse return error.NoSuchDir;
+
+                // find the target file in zine
+                // it might either be target + '.smd' or target + '/index.smd'
+                // whatever we have to append, we append to target_file.
+                // but instead .smd, we append .md and instead of /index.smd, we
+                // append /README.md or just '/'
+                const search_target = if (target[0] == '/') target[1..] else target;
+                const search_smd_prefix = try std.fs.path.join(arena, &.{ workspace_content, search_target });
+                const search_smd = try std.fmt.allocPrint(arena, "{s}.smd", .{search_smd_prefix});
+                const search_index = try std.fmt.allocPrint(arena, "{s}/index.smd", .{search_smd_prefix});
+
+                if (shell.exists(search_smd)) {
+                    // we link to an smd file
+                    target_file = try std.fmt.allocPrint(arena, "{s}.md", .{target_file});
+                } else if (shell.exists(search_index)) {
+                    if (target_file.len == 0 or std.mem.endsWith(u8, target_file, "/")) {
+                        // link to a directory
+                        // TODO:  keeping a link to the directory (.../) is probably
+                        // safer than the explicit README.md stuff below
+                        // GH will render README.md as dir default anyway
+                        const sep = if (target_file.len == 0) "" else "/";
+                        target_file = try std.fmt.allocPrint(arena, "{s}{s}README.md", .{ target_file, sep });
+                    }
+                    // don't care
+                }
+
+                if (target_dir.len > 0) {
+                    target_dir = try std.fmt.allocPrint(arena, "{s}/", .{target_dir});
+                }
+                break :blk try std.fmt.allocPrint(arena, "{s}{s}{s}", .{ target_dir, target_file, anchor });
+            } else {
+                break :blk anchor;
+            }
+        };
+
+        const link_url = std.fmt.allocPrint(arena, "[{s}]({s})", .{ link_text, new_target });
+        try self.actions.append(.{ .TranslateLink = .{
+            .source_file = relative_path,
+            .original = original,
+            .destination = new_target,
+        } });
+        return link_url;
+    }
+
+    fn rewriteImageLink(
+        self: *Zine2GH,
+        arena: std.mem.Allocator,
+        relative_path: []const u8,
+        img_text: []const u8,
+        img_target: []const u8,
+    ) ![]const u8 {
+        _ = self;
+        _ = arena;
+
+        // we don't handle Markdown image links in SMD sources. They must be written
+        // in [$image]() format and hence are dealt with in rewriteLink()!
+        std.log.err("Error in {s}:\n    ![{s}]({s})\nThere shouldn't be any ![image](links) until zine is fixed", .{ relative_path, img_text, img_target });
+        return error.InvalidLink;
+
+        // # new_target = f"[{img_text}]($image.url('{img_target}'))"
+        // # self.actions.append(TranslateImageAction(source_file=relative_path,
+        // #                                         original=img_target,
+        // #                                         destination=new_target))
+        // # return new_target
+    }
+
+    ///    - rewrites markdown links
+    ///    - but errors on image links ![imgtext](imglink) ; see above rewriteImageLink()
+    ///    - also handles newlines in links
+    fn rewriteContent(
+        self: *Zine2GH,
+        arena: std.mem.Allocator,
+        markdown_content: []const u8,
+        relative_path: []const u8,
+    ) ![]const u8 {
+        var link_matcher = try regex.LinkMatcher.init(.{ .Zine_Link = .{} });
+
+        const Context = struct {
+            processor: *Zine2GH,
+            relative_path: []const u8,
+        };
+        const context: Context = .{ .processor = self, .relative_path = relative_path };
+
+        const link_cb = struct {
+            fn cb(ctx: Context, alloc: std.mem.Allocator, match: regex.LinkMatch) ![]const u8 {
+                // replace newlines in link_text
+                const link_text = try std.mem.replaceOwned(u8, alloc, match.link_text.content, "\n", " ");
+                // get link target and strip extra whitespace
+                const target = std.mem.trim(u8, match.link_url.content, " \n\r\t");
+                if (std.mem.startsWith(u8, target, "http")) {
+                    return match.entire_link.content;
+                }
+                return try ctx.processor.rewriteLink(alloc, ctx.relative_path, link_text, target);
+            }
+        }.cb;
+        const new_content = try link_matcher.replaceCtx(Context, context, arena, markdown_content, link_cb);
+
+        // TODO: make this work once it is needed. Seems like it also finds []($image) links
+        // (that's probably what it's made for :lol:)
+        if (false) {
+            // in properly crafted .smd files, this should never find an image link
+            const img_cb = struct {
+                fn cb(ctx: Context, alloc: std.mem.Allocator, match: regex.LinkMatch) ![]const u8 {
+                    // replace newlines in link_text
+                    const img_text = try std.mem.replaceOwned(u8, alloc, match.link_text.content, "\n", " ");
+                    // get image target and strip extra whitespace
+                    const img_target = std.mem.trim(u8, match.link_url.content, " \n\r\t");
+                    return try ctx.processor.rewriteImageLink(alloc, ctx.relative_path, img_text, img_target);
+                }
+            }.cb;
+
+            var img_matcher = try regex.LinkMatcher.init(.{ .Zine_Img = .{} });
+            return try img_matcher.replaceCtx(Context, context, arena, new_content, img_cb);
+        }
+        return new_content;
+    }
+
+    /// Takes the content, splits it into the YAML section and the content
+    /// section, and then returns the two: yaml, content in a tuple
+    fn splitYamlAndContent(
+        _: *Zine2GH,
+        arena: std.mem.Allocator,
+        content: []const u8,
+        smd_src_file: []const u8,
+    ) !struct { []const u8, []const u8 } {
+        var lines_smd = std.ArrayList([]const u8).init(arena);
+        var lines_md = std.ArrayList([]const u8).init(arena);
+        var seen_first_sep: bool = false;
+        var seen_second_sep: bool = false;
+        var line_it: std.mem.SplitIterator(u8, .scalar) = .{
+            .buffer = content,
+            .index = 0,
+            .delimiter = '\n',
+        };
+        while (line_it.next()) |line| {
+            if (seen_second_sep) {
+                try lines_md.append(line);
+            } else {
+                try lines_smd.append(line);
+                if (std.mem.startsWith(u8, line, "---")) {
+                    if (seen_first_sep) {
+                        seen_second_sep = true;
+                    } else {
+                        seen_first_sep = true;
+                    }
+                }
+            }
+        }
+
+        if (lines_smd.items.len == 0) {
+            std.log.err("ERROR: did not produce any YAML lines for {s}", .{smd_src_file});
+            return error.ProcessingError;
+        }
+
+        const new_yaml = try std.mem.join(arena, "\n", lines_smd.items);
+        const new_content = try std.mem.join(arena, "\n", lines_md.items);
+        return .{ new_yaml, new_content };
+    }
 };
+
+test "RewriteZineContent" {
+    // TODO: need to create these docs if not present, see resolveLink
+
+    // test with md content
+    {
+        const smd =
+            \\---
+            \\.title = "ZML Concepts",
+            \\.layout = "documentation.shtml",
+            \\.author = "gwenzek",
+            \\.date = @date("2024-08-29"),
+            \\---
+            \\
+            \\# ZML Concepts
+            \\
+            \\## Model lifecycle
+            \\
+            \\ZML is an inference stack that helps running Machine Learning (ML) models, and
+            \\particulary Neural Networks (NN).
+            \\[Multilayer perceptrons]($image.url('https://raw.githubusercontent.com/zml/zml.github.io/refs/heads/main/docs-assets/perceptron.png'))
+            \\[blah](/howtos/add_weights)
+        ;
+        const expected_smd =
+            \\---
+            \\.title = "ZML Concepts",
+            \\.layout = "documentation.shtml",
+            \\.author = "gwenzek",
+            \\.date = @date("2024-08-29"),
+            \\---
+        ;
+        const expected_md =
+            \\
+            \\# ZML Concepts
+            \\
+            \\## Model lifecycle
+            \\
+            \\ZML is an inference stack that helps running Machine Learning (ML) models, and
+            \\particulary Neural Networks (NN).
+            \\![Multilayer perceptrons](https://raw.githubusercontent.com/zml/zml.github.io/refs/heads/main/docs-assets/perceptron.png)
+            \\[blah](../howtos/add_weights.md)
+        ;
+
+        const smd_filn = "WORKSPACE/content/learn/concepts.smd";
+
+        const alloc = std.testing.allocator;
+        var arena_ = std.heap.ArenaAllocator.init(alloc);
+        defer arena_.deinit();
+        const arena = arena_.allocator();
+
+        var processor = try Zine2GH.init(alloc, "zml/docs", "content", "WORKSPACE");
+        defer processor.deinit();
+
+        const new_content = try processor.rewriteContent(arena, smd, smd_filn);
+        const new_yaml, const new_md_content = try processor.splitYamlAndContent(arena, new_content, smd_filn);
+
+        try std.testing.expectEqualStrings(expected_smd, new_yaml);
+        try std.testing.expectEqualStrings(expected_md, new_md_content);
+    }
+}
 
 fn help() void {
     std.debug.print(

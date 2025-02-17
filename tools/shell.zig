@@ -1,7 +1,7 @@
 const std = @import("std");
 
 pub fn exists(file: []const u8) bool {
-    _ = try std.fs.cwd().statFile(file) catch return false;
+    _ = std.fs.cwd().statFile(file) catch return false;
     return true;
 }
 
