@@ -2,10 +2,8 @@ const std = @import("std");
 const shell = @import("shell.zig");
 const regex = @import("regex.zig");
 
-test {
-    std.testing.refAllDecls(regex);
-}
-
+/// Actions taken by the text processor
+/// Used for logging
 const Action = union(enum) {
     CreateDir: []const u8,
     TranslateLink: struct {

@@ -179,30 +179,43 @@ fn addTests(
     optimize: std.builtin.OptimizeMode,
     pcre2_dep: *std.Build.Dependency,
 ) void {
-    const exe_processor_tests = b.addTest(.{
+    // tools/processor.zig
+    const exe_test_processor = b.addTest(.{
         .root_source_file = b.path("tools/processor.zig"),
         .target = target,
         .optimize = optimize,
     });
-    exe_processor_tests.linkLibrary(pcre2_dep.artifact("pcre2-8")); // for unicode 8
-    const run_exe_unit_tests = b.addRunArtifact(exe_processor_tests);
+    exe_test_processor.linkLibrary(pcre2_dep.artifact("pcre2-8")); // for unicode 8
+    const run_test_processor = b.addRunArtifact(exe_test_processor);
 
-    const exe_shell_test = b.addTest(.{
+    // tools/regex.zig
+    const exe_test_regex = b.addTest(.{
+        .root_source_file = b.path("tools/regex.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    exe_test_regex.linkLibrary(pcre2_dep.artifact("pcre2-8")); // for unicode 8
+    const run_test_regex = b.addRunArtifact(exe_test_regex);
+
+    // tools/shell.zig
+    const exe_test_shell = b.addTest(.{
         .root_source_file = b.path("tools/shell.zig"),
         .target = target,
         .optimize = optimize,
     });
-    const run_exe_shell_tests = b.addRunArtifact(exe_shell_test);
+    const run_test_shell = b.addRunArtifact(exe_test_shell);
 
-    const exe_tool_tests = b.addTest(.{
+    // tools/tool.zig
+    const exe_test_tool = b.addTest(.{
         .root_source_file = b.path("tools/tool.zig"),
         .target = target,
         .optimize = optimize,
     });
-    const run_exe_tool_tests = b.addRunArtifact(exe_tool_tests);
+    const run_test_tool = b.addRunArtifact(exe_test_tool);
 
     const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&run_exe_unit_tests.step);
-    test_step.dependOn(&run_exe_shell_tests.step);
-    test_step.dependOn(&run_exe_tool_tests.step);
+    test_step.dependOn(&run_test_processor.step);
+    test_step.dependOn(&run_test_regex.step);
+    test_step.dependOn(&run_test_shell.step);
+    test_step.dependOn(&run_test_tool.step);
 }
