@@ -2,7 +2,7 @@
 
 ## REQUIREMENTS:
 
-- zig 0.13.0
+- zig 0.14.0
 
 ## HOW TO EDIT WITH LIVE-PREVIEW & COMMIT DOCS
 
