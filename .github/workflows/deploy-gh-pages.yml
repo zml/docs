@@ -1,4 +1,4 @@
-name: Build and Deploy to GitHub Pages
+name: MANUALLY Build and Deploy to GitHub Pages
 
 on:
   # trigger manually for now
