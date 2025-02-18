@@ -65,7 +65,7 @@
       // navigate to this hash.
       viewSourceHash: null,
     };
-    var curNavSearch = "zml";
+    var curNavSearch = "#zml";
     var curSearchIndex = -1;
     var imFeelingLucky = false;
 
@@ -111,6 +111,7 @@
         domSearch.addEventListener('input', onSearchChange, false);
         window.addEventListener('keydown', onWindowKeyDown, false);
         onHashChange(null);
+        navigate("#zml");
       });
     });
 
