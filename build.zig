@@ -5,6 +5,9 @@ pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    // the zine dev server needs this option!!!
+    const opt_debug = b.option(bool, "debug", "zine debug, unused") orelse true;
+
     const pcre2_dep = b.dependency("pcre2", .{
         .target = target,
         .optimize = optimize,
@@ -12,7 +15,7 @@ pub fn build(b: *std.Build) !void {
     });
 
     const docs_wasm = try buildDocsWasm(b, optimize);
-    const website_step, const serve_step = try buildWebSite(b, docs_wasm);
+    const website_step, const serve_step = try buildWebSite(b, docs_wasm, opt_debug);
     // has to be run with zig build website
     _ = website_step;
     // has to be run with zig build serve
@@ -51,7 +54,7 @@ fn buildDocsWasm(b: *std.Build, optimize: std.builtin.OptimizeMode) !*std.Build.
     return docs_wasm;
 }
 
-fn buildWebSite(b: *std.Build, docs_wasm: *std.Build.Step.Compile) !struct {
+fn buildWebSite(b: *std.Build, docs_wasm: *std.Build.Step.Compile, debug: bool) !struct {
     *std.Build.Step,
     *std.Build.Step,
 } {
@@ -59,7 +62,6 @@ fn buildWebSite(b: *std.Build, docs_wasm: *std.Build.Step.Compile) !struct {
         .{
         .title = "ZML Documentation Website",
         .host_url = "https://docs.zml.ai",
-        // .output_path_prefix = "web",
         .content_dir_path = "content",
         .layouts_dir_path = "layouts",
         .assets_dir_path = "assets",
@@ -93,7 +95,7 @@ fn buildWebSite(b: *std.Build, docs_wasm: *std.Build.Step.Compile) !struct {
                 .install_always = true,
             },
         },
-        .debug = true,
+        .debug = debug,
     };
 
     // Setup debug flags if the user enabled Zine debug.
