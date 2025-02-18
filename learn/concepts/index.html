@@ -27,8 +27,8 @@
     <a id="logo" href="/"></a>
     <nav id="menu">
       <!-- burger menu -->
-      <button id="burger-menu" aria-label="Toggle Menu">&#9776;</button> <!-- Burger menu icon -->
-
+      <button id="burger-menu" aria-label="Toggle Menu">&#9776;</button>
+      <!-- Burger menu icon -->
       <a href="/">Home</a>
       •
       <a href="/tutorials/getting_started/">Quickstart</a>
@@ -44,46 +44,43 @@
       <a href="https://github.com/zml/zml" target="_blank">Code</a>
       •
       <a href="https://discord.gg/6y72SN2E7H" target="_blank">Discord</a>
-
-
     </nav>
     <!-- <hr style="width:min(600px, 100vw); border-color:#0798b3; color: white; border-top:1px;"> -->
     <aside id="sidebar" class="sidebar">
-        <!-- <h3>Docs</h3> -->
-        <a href="/tutorials/"><h5>Tutorials</h5></a>
-        <div class="linkbox">
-            <div><a href="/tutorials/getting_started/">Getting Started with ZML</a></div>
-        
-            <div><a href="/tutorials/write_first_model/">Writing your first model</a></div>
-        
-            <div><a href="/tutorials/working_with_tensors/">Simplifying Dimension Handling with Tagged Tensors</a></div>
-        </div>
-        <a href="/howtos/"><h5>How-Tos</h5></a>
-        <div class="linkbox">
-            <div><a href="/howtos/huggingface_access_token/">Huggingface Token Authentication</a></div>
-        
-            <div><a href="/howtos/dockerize_models/">Dockerize a Model</a></div>
-        
-            <div><a href="/howtos/deploy_on_server/">Deploying Models on a Server</a></div>
-        
-            <div><a href="/howtos/howto_torch2zml/">How to port Pytorch models to ZML ?</a></div>
-        
-            <div><a href="/howtos/add_weights/">Adding Weights Files</a></div>
-        </div>
-        <a href="/tutorials/"><h5>Learn more</h5></a>
-        <div class="linkbox">
-            <div><a href="/learn/concepts/">ZML Concepts</a></div>
-        </div>
-        <a href="/tutorials/"><h5>Misc</h5></a>
-        <div class="linkbox">
-            <div><a href="/misc/style_guide/">ZML Style Guide</a></div>
-        
-            <div><a href="/misc/zml_api/">API Docs</a></div>
-        </div>
+      <!-- <h3>Docs</h3> -->
+      <a href="/tutorials/"><h5>Tutorials</h5></a>
+      <div class="linkbox">
+        <div><a href="/tutorials/getting_started/">Getting Started with ZML</a></div>
+      
+        <div><a href="/tutorials/write_first_model/">Writing your first model</a></div>
+      
+        <div><a href="/tutorials/working_with_tensors/">Simplifying Dimension Handling with Tagged Tensors</a></div>
+      </div>
+      <a href="/howtos/"><h5>How-Tos</h5></a>
+      <div class="linkbox">
+        <div><a href="/howtos/huggingface_access_token/">Huggingface Token Authentication</a></div>
+      
+        <div><a href="/howtos/dockerize_models/">Dockerize a Model</a></div>
+      
+        <div><a href="/howtos/deploy_on_server/">Deploying Models on a Server</a></div>
+      
+        <div><a href="/howtos/howto_torch2zml/">How to port Pytorch models to ZML ?</a></div>
+      
+        <div><a href="/howtos/add_weights/">Adding Weights Files</a></div>
+      </div>
+      <a href="/tutorials/"><h5>Learn more</h5></a>
+      <div class="linkbox">
+        <div><a href="/learn/concepts/">ZML Concepts</a></div>
+      </div>
+      <a href="/tutorials/"><h5>Misc</h5></a>
+      <div class="linkbox">
+        <div><a href="/misc/style_guide/">ZML Style Guide</a></div>
+      
+        <div><a href="/misc/zml_api/">API Docs</a></div>
+      </div>
     </aside>
-
     <main>
-        <div id="content">
+      <div id="content">
   <style>
     h1 {
        margin-top: 0;
@@ -180,18 +177,18 @@
 <p><code>zml.nn</code> module provides a number of well-known layers to more easily bootstrap models.</p><p>Since the <code>Model</code> struct contains <code>Tensor</code>s, it is only ever useful during the compilation stage, but not during inference. If we want to represent the model with actual <code>Buffer</code>s, we can use the <code>zml.Bufferize(Model)</code>, which is a mirror struct of <code>Model</code> but with a <code>Buffer</code> replacing every <code>Tensor</code>.</p><h2 id="strong-type-checking">Strong type checking</h2><p>Let's look at the model life cycle again, but this time annotated with the corresponding types.</p><ol><li><p>Open the model file and read the shapes of the weights -> <code>zml.HostBuffer</code> (using memory mapping, no actual copies happen yet)</p></li><li><p>Instantiate a model struct -> <code>Model</code> struct (with <code>zml.Tensor</code> inside)</p></li><li><p>Compile the model struct and its <code>forward</code> function into an executable. <code>foward</code> is a <code>Tensor -&gt; Tensor</code> function, executable is a <code>zml.FnExe(Model.forward)</code></p></li><li><p>Load the model weights from disk, onto accelerator memory -> <code>zml.Bufferized(Model)</code> struct (with <code>zml.Buffer</code> inside)</p></li><li><p>Bind the model weights to the executable <code>zml.ModuleExe(Model.forward)</code></p></li><li><p>Load some user inputs (custom struct), encode them into arrays of numbers (<code>zml.HostBuffer</code>), and copy them to the accelerator (<code>zml.Buffer</code>).</p></li><li><p>Call the executable on the user inputs. <code>module.call</code> accepts <code>zml.Buffer</code> arguments and returns <code>zml.Buffer</code></p></li><li><p>Return the model output (<code>zml.Buffer</code>) to the host (<code>zml.HostBuffer</code>), decode it (custom struct) and finally return to the user.</p></li></ol></div>
 </div>
     </main>
-
-
     <footer>
-        <!-- OPTION 1: with Zine -->
-        <b>&copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> </b> — <i>made with <a href="https://zine-ssg.io" target="_blank">Zine</a></i>
-
-        <!-- OPTION 2: ZML only -->
-        <!-- &copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> -->
+      <!-- OPTION 1: with Zine -->
+      <b>&copy; in 2024 by
+        <a href="https://zml.ai" target="_blank">ZML.ai</a></b>
+      —
+      <i>made with
+        <a href="https://zine-ssg.io" target="_blank">Zine</a></i>
+      <!-- OPTION 2: ZML only -->
+      <!-- &copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> -->
     </footer>
-
-  <!-- burger menu script -->
-  <script>
+    <!-- burger menu script -->
+    <script>
       document.getElementById('burger-menu').addEventListener('click', function() {
         const sidebar = document.getElementById('sidebar');
         const logo = document.getElementById('logo');
@@ -204,6 +201,6 @@
         // Toggle the 'show-sidebar' class on the body to adjust the grid layout
         body.classList.toggle('show-sidebar');
       });
-</script>
+    </script>
   </body>
 </html>

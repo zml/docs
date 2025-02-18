@@ -27,8 +27,8 @@
     <a id="logo" href="/"></a>
     <nav id="menu">
       <!-- burger menu -->
-      <button id="burger-menu" aria-label="Toggle Menu">&#9776;</button> <!-- Burger menu icon -->
-
+      <button id="burger-menu" aria-label="Toggle Menu">&#9776;</button>
+      <!-- Burger menu icon -->
       <a href="/">Home</a>
       •
       <a href="/tutorials/getting_started/">Quickstart</a>
@@ -44,46 +44,43 @@
       <a href="https://github.com/zml/zml" target="_blank">Code</a>
       •
       <a href="https://discord.gg/6y72SN2E7H" target="_blank">Discord</a>
-
-
     </nav>
     <!-- <hr style="width:min(600px, 100vw); border-color:#0798b3; color: white; border-top:1px;"> -->
     <aside id="sidebar" class="sidebar">
-        <!-- <h3>Docs</h3> -->
-        <a href="/tutorials/"><h5>Tutorials</h5></a>
-        <div class="linkbox">
-            <div><a href="/tutorials/getting_started/">Getting Started with ZML</a></div>
-        
-            <div><a href="/tutorials/write_first_model/">Writing your first model</a></div>
-        
-            <div><a href="/tutorials/working_with_tensors/">Simplifying Dimension Handling with Tagged Tensors</a></div>
-        </div>
-        <a href="/howtos/"><h5>How-Tos</h5></a>
-        <div class="linkbox">
-            <div><a href="/howtos/huggingface_access_token/">Huggingface Token Authentication</a></div>
-        
-            <div><a href="/howtos/dockerize_models/">Dockerize a Model</a></div>
-        
-            <div><a href="/howtos/deploy_on_server/">Deploying Models on a Server</a></div>
-        
-            <div><a href="/howtos/howto_torch2zml/">How to port Pytorch models to ZML ?</a></div>
-        
-            <div><a href="/howtos/add_weights/">Adding Weights Files</a></div>
-        </div>
-        <a href="/tutorials/"><h5>Learn more</h5></a>
-        <div class="linkbox">
-            <div><a href="/learn/concepts/">ZML Concepts</a></div>
-        </div>
-        <a href="/tutorials/"><h5>Misc</h5></a>
-        <div class="linkbox">
-            <div><a href="/misc/style_guide/">ZML Style Guide</a></div>
-        
-            <div><a href="/misc/zml_api/">API Docs</a></div>
-        </div>
+      <!-- <h3>Docs</h3> -->
+      <a href="/tutorials/"><h5>Tutorials</h5></a>
+      <div class="linkbox">
+        <div><a href="/tutorials/getting_started/">Getting Started with ZML</a></div>
+      
+        <div><a href="/tutorials/write_first_model/">Writing your first model</a></div>
+      
+        <div><a href="/tutorials/working_with_tensors/">Simplifying Dimension Handling with Tagged Tensors</a></div>
+      </div>
+      <a href="/howtos/"><h5>How-Tos</h5></a>
+      <div class="linkbox">
+        <div><a href="/howtos/huggingface_access_token/">Huggingface Token Authentication</a></div>
+      
+        <div><a href="/howtos/dockerize_models/">Dockerize a Model</a></div>
+      
+        <div><a href="/howtos/deploy_on_server/">Deploying Models on a Server</a></div>
+      
+        <div><a href="/howtos/howto_torch2zml/">How to port Pytorch models to ZML ?</a></div>
+      
+        <div><a href="/howtos/add_weights/">Adding Weights Files</a></div>
+      </div>
+      <a href="/tutorials/"><h5>Learn more</h5></a>
+      <div class="linkbox">
+        <div><a href="/learn/concepts/">ZML Concepts</a></div>
+      </div>
+      <a href="/tutorials/"><h5>Misc</h5></a>
+      <div class="linkbox">
+        <div><a href="/misc/style_guide/">ZML Style Guide</a></div>
+      
+        <div><a href="/misc/zml_api/">API Docs</a></div>
+      </div>
     </aside>
-
     <main>
-        <div id="content">
+      <div id="content">
   <style>
     h1 {
        margin-top: 0;
@@ -163,18 +160,18 @@ bazel run -c opt //llama:Meta-Llama-3-8b -- --promt=&quot;Once upon a time,&quot
 </code></pre></div>
 </div>
     </main>
-
-
     <footer>
-        <!-- OPTION 1: with Zine -->
-        <b>&copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> </b> — <i>made with <a href="https://zine-ssg.io" target="_blank">Zine</a></i>
-
-        <!-- OPTION 2: ZML only -->
-        <!-- &copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> -->
+      <!-- OPTION 1: with Zine -->
+      <b>&copy; in 2024 by
+        <a href="https://zml.ai" target="_blank">ZML.ai</a></b>
+      —
+      <i>made with
+        <a href="https://zine-ssg.io" target="_blank">Zine</a></i>
+      <!-- OPTION 2: ZML only -->
+      <!-- &copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> -->
     </footer>
-
-  <!-- burger menu script -->
-  <script>
+    <!-- burger menu script -->
+    <script>
       document.getElementById('burger-menu').addEventListener('click', function() {
         const sidebar = document.getElementById('sidebar');
         const logo = document.getElementById('logo');
@@ -187,6 +184,6 @@ bazel run -c opt //llama:Meta-Llama-3-8b -- --promt=&quot;Once upon a time,&quot
         // Toggle the 'show-sidebar' class on the body to adjust the grid layout
         body.classList.toggle('show-sidebar');
       });
-</script>
+    </script>
   </body>
 </html>

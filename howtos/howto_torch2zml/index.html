@@ -27,8 +27,8 @@
     <a id="logo" href="/"></a>
     <nav id="menu">
       <!-- burger menu -->
-      <button id="burger-menu" aria-label="Toggle Menu">&#9776;</button> <!-- Burger menu icon -->
-
+      <button id="burger-menu" aria-label="Toggle Menu">&#9776;</button>
+      <!-- Burger menu icon -->
       <a href="/">Home</a>
       •
       <a href="/tutorials/getting_started/">Quickstart</a>
@@ -44,46 +44,43 @@
       <a href="https://github.com/zml/zml" target="_blank">Code</a>
       •
       <a href="https://discord.gg/6y72SN2E7H" target="_blank">Discord</a>
-
-
     </nav>
     <!-- <hr style="width:min(600px, 100vw); border-color:#0798b3; color: white; border-top:1px;"> -->
     <aside id="sidebar" class="sidebar">
-        <!-- <h3>Docs</h3> -->
-        <a href="/tutorials/"><h5>Tutorials</h5></a>
-        <div class="linkbox">
-            <div><a href="/tutorials/getting_started/">Getting Started with ZML</a></div>
-        
-            <div><a href="/tutorials/write_first_model/">Writing your first model</a></div>
-        
-            <div><a href="/tutorials/working_with_tensors/">Simplifying Dimension Handling with Tagged Tensors</a></div>
-        </div>
-        <a href="/howtos/"><h5>How-Tos</h5></a>
-        <div class="linkbox">
-            <div><a href="/howtos/huggingface_access_token/">Huggingface Token Authentication</a></div>
-        
-            <div><a href="/howtos/dockerize_models/">Dockerize a Model</a></div>
-        
-            <div><a href="/howtos/deploy_on_server/">Deploying Models on a Server</a></div>
-        
-            <div><a href="/howtos/howto_torch2zml/">How to port Pytorch models to ZML ?</a></div>
-        
-            <div><a href="/howtos/add_weights/">Adding Weights Files</a></div>
-        </div>
-        <a href="/tutorials/"><h5>Learn more</h5></a>
-        <div class="linkbox">
-            <div><a href="/learn/concepts/">ZML Concepts</a></div>
-        </div>
-        <a href="/tutorials/"><h5>Misc</h5></a>
-        <div class="linkbox">
-            <div><a href="/misc/style_guide/">ZML Style Guide</a></div>
-        
-            <div><a href="/misc/zml_api/">API Docs</a></div>
-        </div>
+      <!-- <h3>Docs</h3> -->
+      <a href="/tutorials/"><h5>Tutorials</h5></a>
+      <div class="linkbox">
+        <div><a href="/tutorials/getting_started/">Getting Started with ZML</a></div>
+      
+        <div><a href="/tutorials/write_first_model/">Writing your first model</a></div>
+      
+        <div><a href="/tutorials/working_with_tensors/">Simplifying Dimension Handling with Tagged Tensors</a></div>
+      </div>
+      <a href="/howtos/"><h5>How-Tos</h5></a>
+      <div class="linkbox">
+        <div><a href="/howtos/huggingface_access_token/">Huggingface Token Authentication</a></div>
+      
+        <div><a href="/howtos/dockerize_models/">Dockerize a Model</a></div>
+      
+        <div><a href="/howtos/deploy_on_server/">Deploying Models on a Server</a></div>
+      
+        <div><a href="/howtos/howto_torch2zml/">How to port Pytorch models to ZML ?</a></div>
+      
+        <div><a href="/howtos/add_weights/">Adding Weights Files</a></div>
+      </div>
+      <a href="/tutorials/"><h5>Learn more</h5></a>
+      <div class="linkbox">
+        <div><a href="/learn/concepts/">ZML Concepts</a></div>
+      </div>
+      <a href="/tutorials/"><h5>Misc</h5></a>
+      <div class="linkbox">
+        <div><a href="/misc/style_guide/">ZML Style Guide</a></div>
+      
+        <div><a href="/misc/zml_api/">API Docs</a></div>
+      </div>
     </aside>
-
     <main>
-        <div id="content">
+      <div id="content">
   <style>
     h1 {
        margin-top: 0;
@@ -293,18 +290,18 @@
 <p>During this phase, you have three kinds of errors that can appear:</p><ul><li>Zig compilation errors: we've all been there, learning a new language can be tough. Normally, the compiler should help you figure out what's wrong. You can also check <a href="/learn/concepts/">ZML concepts</a> that explains types used by ZML.</li><li>Buffer not found errors: be careful that you need to use the naming scheme of the inference pipeline when loading the activations. Depending on how you write your code, you may have a different naming convention in the model file and in the activation file. This is because in Python, and in particular the <code>transformers</code> library, it's not uncommon to wrap the model in a <code>Pipeline</code> object before using it. So a given layer may be named <code>layer.0.mlp</code> in the model file, but its activations may be saved under <code>model.layer.0.mlp</code>.</li><li>MLIR compilation errors: typically this is caused by a mathematical error in the <code>forward</code> function. To help here, you can log the shapes of the input and intermediary values: <code>std.log.info(&quot;x: {}&quot;, .{x})</code>, and put similar print statements in the Python code. You can also consider splitting a big layer into smaller parts. Since our code only explicitly captures <code>torch.nn.Module</code> input/output, you may need to modify the Python script to add some extra tensors to the dictionary with example input/output of a specific function.</li></ul><h2 id="general-tips">General tips</h2><ul><li><p>Porting models can be hard, especially if the original code is messy, has poor comments, behaves differently on different input shapes, or has unused code paths. Start by identifying parts of the Python code which are <strong>unused</strong>. It is common in research code that some code paths were written for one paper, but didn't get used in subsequent papers.</p></li><li><p>ZML offers a few Pytorch specific helpers in <code>zml.torch</code>; those operators are offered to help you port models, but in general they may have weird APIs. If you're lucky and the code you are porting has comments indicating "tags", eg "C,W,H" of tensors, you can port this to actual tensor attributes using <code>x.withTags(.{.c, .w, .h})</code>, and use those tags (eg <code>.c</code>) to refer to axes instead of offsets. E.g. in Pytorch: <code>x.sum(0) # reduce over channel axis</code> becomes <code>x.sum(.c)</code>. More on this topic in <a href="/tutorials/working_with_tensors/">"Working with tensors"</a>.</p></li></ul></div>
 </div>
     </main>
-
-
     <footer>
-        <!-- OPTION 1: with Zine -->
-        <b>&copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> </b> — <i>made with <a href="https://zine-ssg.io" target="_blank">Zine</a></i>
-
-        <!-- OPTION 2: ZML only -->
-        <!-- &copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> -->
+      <!-- OPTION 1: with Zine -->
+      <b>&copy; in 2024 by
+        <a href="https://zml.ai" target="_blank">ZML.ai</a></b>
+      —
+      <i>made with
+        <a href="https://zine-ssg.io" target="_blank">Zine</a></i>
+      <!-- OPTION 2: ZML only -->
+      <!-- &copy; in 2024 by <a href="https://zml.ai" target="_blank">ZML.ai</a> -->
     </footer>
-
-  <!-- burger menu script -->
-  <script>
+    <!-- burger menu script -->
+    <script>
       document.getElementById('burger-menu').addEventListener('click', function() {
         const sidebar = document.getElementById('sidebar');
         const logo = document.getElementById('logo');
@@ -317,6 +314,6 @@
         // Toggle the 'show-sidebar' class on the body to adjust the grid layout
         body.classList.toggle('show-sidebar');
       });
-</script>
+    </script>
   </body>
 </html>

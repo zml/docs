@@ -65,7 +65,7 @@
       // navigate to this hash.
       viewSourceHash: null,
     };
-    var curNavSearch = "";
+    var curNavSearch = "zml";
     var curSearchIndex = -1;
     var imFeelingLucky = false;
 
