@@ -724,7 +724,6 @@ pub const Zine2GH = struct {
                 const workspace_content = try std.fs.path.join(arena, &.{ self.workspace, self.zine_path });
                 const resolved = try create_relative_link(arena, workspace_content, relative_path, target);
                 var target_file = std.fs.path.basename(resolved);
-                std.log.debug("target={s} , relative_path={s} , resolved={s} , target_file={s}", .{ target, relative_path, resolved, target_file });
                 var target_dir = std.fs.path.dirname(resolved) orelse "";
 
                 // find the target file in zine
