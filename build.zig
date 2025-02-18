@@ -2,6 +2,34 @@ const std = @import("std");
 const zine = @import("zine");
 
 pub fn build(b: *std.Build) !void {
+    const target = b.standardTargetOptions(.{});
+    const optimize = b.standardOptimizeOption(.{});
+
+    const pcre2_dep = b.dependency("pcre2", .{
+        .target = target,
+        .optimize = optimize,
+        .@"code-unit-width" = .@"8",
+    });
+
+    const docs_wasm = try buildDocsWasm(b, optimize);
+    const website_step, const serve_step = try buildWebSite(b, docs_wasm);
+    // has to be run with zig build website
+    _ = website_step;
+    // has to be run with zig build serve
+    _ = serve_step;
+
+    const tool_exe = try buildTool(b, target, optimize);
+    tool_exe.linkLibrary(pcre2_dep.artifact("pcre2-8")); // for unicode 8
+    b.installArtifact(tool_exe);
+
+    //
+    // TESTS
+    //
+    addTests(b, target, optimize, pcre2_dep);
+}
+
+/// build the WASM docs target
+fn buildDocsWasm(b: *std.Build, optimize: std.builtin.OptimizeMode) !*std.Build.Step.Compile {
     const wasm_target = b.resolveTargetQuery(.{
         .cpu_arch = .wasm32,
         .os_tag = .freestanding,
@@ -11,7 +39,7 @@ pub fn build(b: *std.Build) !void {
     const docs_wasm = b.addExecutable(.{
         .name = "main",
         .target = wasm_target,
-        .optimize = b.standardOptimizeOption(.{}),
+        .optimize = optimize,
         .root_source_file = .{ .cwd_relative = "zig_docs/main.zig" },
     });
     docs_wasm.entry = .disabled;
@@ -20,10 +48,18 @@ pub fn build(b: *std.Build) !void {
         .root_source_file = .{ .cwd_relative = "zig_docs/Walk.zig" },
     });
     docs_wasm.root_module.addImport("Walk", Walk);
+    return docs_wasm;
+}
 
-    zine.website(b, .{
+fn buildWebSite(b: *std.Build, docs_wasm: *std.Build.Step.Compile) !struct {
+    *std.Build.Step,
+    *std.Build.Step,
+} {
+    const site: zine.Site =
+        .{
         .title = "ZML Documentation Website",
         .host_url = "https://docs.zml.ai",
+        // .output_path_prefix = "web",
         .content_dir_path = "content",
         .layouts_dir_path = "layouts",
         .assets_dir_path = "assets",
@@ -58,5 +94,105 @@ pub fn build(b: *std.Build) !void {
             },
         },
         .debug = true,
+    };
+
+    // Setup debug flags if the user enabled Zine debug.
+    const opts: zine.ZineOptions = .{
+        .optimize = if (site.debug) .Debug else .ReleaseFast,
+    };
+
+    const website_step = b.step(
+        "website",
+        "Builds the website",
+    );
+    zine.addWebsite(b, opts, website_step, site);
+
+    const serve_step = b.step(
+        "serve",
+        "Starts the Zine development server",
+    );
+
+    const port = b.option(
+        u16,
+        "port",
+        "port to listen on for the development server",
+    ) orelse 1990;
+
+    zine.addDevelopmentServer(b, opts, serve_step, .{
+        .website_step = website_step,
+        .host = "localhost",
+        .port = port,
+        .input_dirs = &.{
+            site.layouts_dir_path,
+            site.content_dir_path,
+            site.assets_dir_path,
+        },
     });
+    return .{ website_step, serve_step };
+}
+
+/// build the Workspace Preparation tool
+fn buildTool(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) !*std.Build.Step.Compile {
+    // text pre- and post-processor
+    const exe = b.addExecutable(.{
+        .name = "tool",
+        .root_source_file = b.path("tools/tool.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const run_cmd = b.addRunArtifact(exe);
+    run_cmd.step.dependOn(b.getInstallStep());
+    if (b.args) |args| {
+        run_cmd.addArgs(args);
+    }
+    const run_step = b.step("tool", "Run the workspace preparation tool");
+    run_step.dependOn(&run_cmd.step);
+    return exe;
+}
+
+fn addTests(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    pcre2_dep: *std.Build.Dependency,
+) void {
+    // tools/processor.zig
+    const exe_test_processor = b.addTest(.{
+        .root_source_file = b.path("tools/processor.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    exe_test_processor.linkLibrary(pcre2_dep.artifact("pcre2-8")); // for unicode 8
+    const run_test_processor = b.addRunArtifact(exe_test_processor);
+
+    // tools/regex.zig
+    const exe_test_regex = b.addTest(.{
+        .root_source_file = b.path("tools/regex.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    exe_test_regex.linkLibrary(pcre2_dep.artifact("pcre2-8")); // for unicode 8
+    const run_test_regex = b.addRunArtifact(exe_test_regex);
+
+    // tools/shell.zig
+    const exe_test_shell = b.addTest(.{
+        .root_source_file = b.path("tools/shell.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const run_test_shell = b.addRunArtifact(exe_test_shell);
+
+    // tools/tool.zig
+    const exe_test_tool = b.addTest(.{
+        .root_source_file = b.path("tools/tool.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const run_test_tool = b.addRunArtifact(exe_test_tool);
+
+    const test_step = b.step("test", "Run unit tests");
+    test_step.dependOn(&run_test_processor.step);
+    test_step.dependOn(&run_test_regex.step);
+    test_step.dependOn(&run_test_shell.step);
+    test_step.dependOn(&run_test_tool.step);
 }

@@ -1,5 +1,5 @@
 .{
-    .name = "Zine Website",
+    .name = "ZML Docs Website",
     .version = "0.0.0",
     .dependencies = .{
         .zine = .{
@@ -13,6 +13,10 @@
 
             // rene local dev
             // .path = "../../renerocksai/zine",
+        },
+        .pcre2 = .{
+            .url = "https://github.com/renerocksai/pcre2/archive/refs/tags/pcre2-10.45.tar.gz",
+            .hash = "12207d56c8b27a141c793fc596af11e6eca919efbbcf49b04f7803c603e2f6081b1b",
         },
     },
     .paths = .{"."},

@@ -1,4 +1,4 @@
-name: Build and Deploy to GitHub Pages
+name: MANUALLY Build and Deploy to GitHub Pages
 
 on:
   # trigger manually for now
@@ -27,12 +27,6 @@ jobs:
           path: zml
           ref: master
 
-      # Set up Python
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12'
-
       # Set up Zig
       - uses: mlugg/setup-zig@v1
         with:
@@ -42,11 +36,11 @@ jobs:
       # Run scripts to build the static website with Zine
       - name: Run build scripts
         run: |
-          ./01-PREPARE-FOR-EDITS.sh
+          zig build tool -- edit
           eval "$(ssh-agent -s)"
           ssh-keyscan -t ed25519 github.com > ~/.ssh/known_hosts
           ssh-add - <<< "${{ secrets.DEPLOY_KEY }}"
-          ./02-BUILD.sh --release=small
+          zig build tool -- build --release=small
 
       # Checkout the docs branch
       - name: Checkout the docs branch
