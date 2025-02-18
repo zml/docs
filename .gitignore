@@ -5,3 +5,4 @@ assets/sources.tar
 
 .zig-cache/
 zig-out/
+,*
