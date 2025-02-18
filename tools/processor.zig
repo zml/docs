@@ -344,7 +344,7 @@ pub const Github2Zine = struct {
             try self.actions.append(.{ .ProcessingFile = source_md });
             var smd_yaml_src = try get_matching_path(arena, source_md, self.gh_path, self.zine_path);
             smd_yaml_src = try shell.change_extension(arena, smd_yaml_src, ".smd");
-            if (std.mem.eql(u8, std.fs.path.basename(smd_yaml_src), "README.md")) {
+            if (std.mem.eql(u8, std.fs.path.basename(smd_yaml_src), "README.smd")) {
                 smd_yaml_src = try shell.rename_basename(arena, smd_yaml_src, "index.smd");
             }
             if (!shell.exists(smd_yaml_src)) {
