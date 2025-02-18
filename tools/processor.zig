@@ -592,6 +592,7 @@ pub const Zine2GH = struct {
 
             var dest_md = try get_matching_path(
                 arena,
+                source_smd,
                 workspace_content,
                 self.gh_path,
             );
@@ -609,7 +610,7 @@ pub const Zine2GH = struct {
                 // update: further down, we only create it, if there's actual
                 // content inside the .smd!
             }
-            try self.processFile(arena, source_smd, dest_smd_yaml);
+            try self.processFile(arena, source_smd, dest_smd_yaml, dest_md);
             // DON'T:
             // _ = arena_.reset(.retain_capacity);
         }
@@ -634,7 +635,7 @@ pub const Zine2GH = struct {
     ) !void {
         const max_file_size: usize = 2048 * 1024;
         const content = try std.fs.cwd().readFileAlloc(arena, source_smd, max_file_size);
-        const new_content = self.rewriteContent(arena, content, source_smd);
+        const new_content = try self.rewriteContent(arena, content, source_smd);
         const new_yaml, const new_md_content = try self.splitYamlAndContent(arena, new_content, source_smd);
 
         // create the smd subdirs if necessary
@@ -667,9 +668,9 @@ pub const Zine2GH = struct {
         defer smd_outfile.close();
         try smd_outfile.writeAll(new_yaml);
         if (new_md_content.len > 0) {
-            var md_outfile = try std.fs.cwd().createFile(new_md_content, .{});
+            var md_outfile = try std.fs.cwd().createFile(dest_md, .{});
             defer md_outfile.close();
-            try md_outfile.writeAll(new_yaml);
+            try md_outfile.writeAll(new_md_content);
         }
     }
 
@@ -723,7 +724,8 @@ pub const Zine2GH = struct {
                 const workspace_content = try std.fs.path.join(arena, &.{ self.workspace, self.zine_path });
                 const resolved = try create_relative_link(arena, workspace_content, relative_path, target);
                 var target_file = std.fs.path.basename(resolved);
-                var target_dir = std.fs.path.dirname(resolved) orelse return error.NoSuchDir;
+                std.log.debug("target={s} , relative_path={s} , resolved={s} , target_file={s}", .{ target, relative_path, resolved, target_file });
+                var target_dir = std.fs.path.dirname(resolved) orelse "";
 
                 // find the target file in zine
                 // it might either be target + '.smd' or target + '/index.smd'

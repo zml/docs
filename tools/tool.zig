@@ -32,7 +32,7 @@ pub fn main() !void {
             try build(arena.allocator(), &args);
         }
         if (std.ascii.eqlIgnoreCase(subcommand, "commit")) {
-            return error.NotImplemented;
+            try commit(arena.allocator());
         }
     } else {
         help();
@@ -217,4 +217,34 @@ fn build(arena: std.mem.Allocator, args: *std.process.ArgIterator) !void {
         else => |e| std.log.err("zig: {any}", .{e}),
     }
     unreachable;
+}
+
+fn commit(arena: std.mem.Allocator) !void {
+    std.log.info("COMMIT in ./{s}/", .{WORKSPACE});
+
+    // python processor.py COMMIT content zml/docs WORKSPACE
+    var p = try processor.Zine2GH.init(arena, "zml/docs", "content", WORKSPACE);
+    defer p.deinit();
+    try p.process();
+
+    // now log the results
+    std.log.info("Performed Actions", .{});
+    for (p.actions.items) |action| {
+        std.log.info("- {s}", .{action});
+    }
+
+    // git stats
+    std.debug.print("\n\n\n", .{});
+    std.debug.print("======================================================================\n", .{});
+    std.debug.print("Changes in this repo:\n", .{});
+    std.debug.print("======================================================================\n", .{});
+    var git_process_1 = std.process.Child.init(&.{ "git", "status" }, arena);
+    _ = try git_process_1.spawnAndWait();
+
+    std.debug.print("\n\n\n", .{});
+    std.debug.print("======================================================================\n", .{});
+    std.debug.print("Changes in zml repo:\n", .{});
+    std.debug.print("======================================================================\n", .{});
+    var git_process_2 = std.process.Child.init(&.{ "git", "-C", "zml", "status" }, arena);
+    _ = try git_process_2.spawnAndWait();
 }
