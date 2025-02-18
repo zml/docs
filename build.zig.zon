@@ -12,8 +12,8 @@
             .hash = "1220dfe5a9352fc7c9c16b07c5c6d7417fc96ee92dbab5f27b8d4d02400ba5a9f88c",
         },
         .pcre2 = .{
-            .url = "https://github.com/renerocksai/pcre2/archive/refs/tags/pcre2-10.45.tar.gz",
-            .hash = "12207d56c8b27a141c793fc596af11e6eca919efbbcf49b04f7803c603e2f6081b1b",
+            .url = "https://github.com/renerocksai/pcre2/archive/refs/tags/zig-0.14.tar.gz",
+            .hash = "12202a2e5043bd8641208b0eb597bc0346fd94fdec5b1ae92ee0096e83d6ff33fc45",
         },
     },
     .paths = .{"."},

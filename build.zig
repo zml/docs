@@ -7,6 +7,11 @@ pub fn build(b: *std.Build) !void {
 
     // the zine dev server needs this option!!!
     const opt_debug = b.option(bool, "debug", "zine debug, unused") orelse true;
+    const include_drafts = b.option(
+        bool,
+        "include-drafts",
+        "Include drafts in zine output",
+    ) orelse false;
 
     const pcre2_dep = b.dependency("pcre2", .{
         .target = target,
@@ -15,7 +20,7 @@ pub fn build(b: *std.Build) !void {
     });
 
     const docs_wasm = try buildDocsWasm(b, optimize);
-    const website_step, const serve_step = try buildWebSite(b, docs_wasm, opt_debug);
+    const website_step, const serve_step = try buildWebSite(b, docs_wasm, opt_debug, include_drafts);
     // has to be run with zig build website
     _ = website_step;
     // has to be run with zig build serve
@@ -54,7 +59,7 @@ fn buildDocsWasm(b: *std.Build, optimize: std.builtin.OptimizeMode) !*std.Build.
     return docs_wasm;
 }
 
-fn buildWebSite(b: *std.Build, docs_wasm: *std.Build.Step.Compile, debug: bool) !struct {
+fn buildWebSite(b: *std.Build, docs_wasm: *std.Build.Step.Compile, debug: bool, include_drafts: bool) !struct {
     *std.Build.Step,
     *std.Build.Step,
 } {
@@ -107,7 +112,7 @@ fn buildWebSite(b: *std.Build, docs_wasm: *std.Build.Step.Compile, debug: bool) 
         "website",
         "Builds the website",
     );
-    zine.addWebsite(b, opts, website_step, site);
+    zine.addWebsite(b, opts, website_step, site, include_drafts);
 
     const serve_step = b.step(
         "serve",
