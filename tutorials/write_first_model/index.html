@@ -285,13 +285,13 @@ try buffers</span><span class="punctuation delimiter">.</span><span class="varia
 <p>To produce an executable, we import <code>zig_cc_binary</code> from the zig rules, and pass it a name and the zig file we just wrote. The dependencies in <code>deps</code> are what's needed for a basic ZML executable and correlate with our imports at the top of the Zig file:</p><pre><code class="zig"><span class="type qualifier">const</span> <span class="variable">zml</span> = <span class="function builtin">@import</span><span class="punctuation bracket">(</span><span class="string">&quot;zml&quot;</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
 <span class="type qualifier">const</span> <span class="variable">asynk</span> = <span class="function builtin">@import</span><span class="punctuation bracket">(</span><span class="string">&quot;async&quot;</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
 </code></pre>
-<h2 id="running-it">Running it</h2><p>With everything in place now, running the model is easy:</p><pre><code># run release (-c opt)
+<h2 id="running-it">Running it</h2><p>With everything in place now, running the model is easy:</p><pre><code># run release (--config=release)
 cd examples
-bazel run -c opt //simple_layer
+bazel run --config=release //simple_layer
 
 # compile and run debug version
 bazel run //simple_layer
-</code></pre><p>And voila! Here's the output:</p><pre><code>bazel run -c opt //simple_layer
+</code></pre><p>And voila! Here's the output:</p><pre><code>bazel run --config=release //simple_layer
 INFO: Analyzed target //simple_layer:simple_layer (0 packages loaded, 0 targets configured).
 INFO: Found 1 target...
 Target //simple_layer:simple_layer up-to-date:

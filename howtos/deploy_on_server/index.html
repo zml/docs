@@ -151,13 +151,13 @@
   });
   </script>
   <!-- <h1 :text="$page.title"></h1> -->
-  <div id="docs"><h1 id="deploying-models-on-a-server">Deploying Models on a Server</h1><p>To run models on remote GPU/TPU machines, it is inconvenient to have to check out your project’s repository and compile it on every target. Instead, you more likely want to cross-compile right from your development machine, <strong>for every</strong> supported target architecture and accelerator.</p><p>See <a href="/tutorials/getting_started/">Getting Started with ZML</a> if you need more information on how to compile a model.</p><p><strong>Here's a quick recap:</strong></p><p>You can compile models for accelerator runtimes by appending one or more of the following arguments to the command line when compiling / running a model:</p><ul><li>NVIDIA CUDA: <code>--@zml//runtimes:cuda=true</code></li><li>AMD RoCM: <code>--@zml//runtimes:rocm=true</code></li><li>Google TPU: <code>--@zml//runtimes:tpu=true</code></li><li>AWS Trainium/Inferentia 2: <code>--@zml//runtimes:neuron=true</code></li><li><strong>AVOID CPU:</strong> <code>--@zml//runtimes:cpu=false</code></li></ul><p>So, to run the OpenLLama model from above <strong>on your development machine</strong> housing an NVIDIA GPU, run the following:</p><pre><code>cd examples
-bazel run -c opt //llama:OpenLLaMA-3B --@zml//runtimes:cuda=true
-</code></pre><h2 id="cross-compiling-and-creating-a-tar-for-your-server">Cross-Compiling and creating a TAR for your server</h2><p>Currently, ZML lets you cross-compile to one of the following target architectures:</p><ul><li>Linux X86_64: <code>--platforms=@zml//platforms:linux_amd64</code></li><li>Linux ARM64: <code>--platforms=@zml//platforms:linux_arm64</code></li><li>MacOS ARM64: <code>--platforms=@zml//platforms:macos_arm64</code></li></ul><p>As an example, here is how you build above OpenLLama for CUDA on Linux X86_64:</p><pre><code>cd examples
-bazel build -c opt //llama:OpenLLaMA-3B               \
-            --@zml//runtimes:cuda=true                \
-            --@zml//runtimes:cpu=false                \
-            --platforms=@zml//platforms:linux_amd64
+  <div id="docs"><h1 id="deploying-models-on-a-server">Deploying Models on a Server</h1><p>To run models on remote GPU/TPU machines, it is inconvenient to have to check out your project’s repository and compile it on every target. Instead, you more likely want to cross-compile right from your development machine, <strong>for every</strong> supported target architecture and accelerator.</p><p>See <a href="/tutorials/getting_started/">Getting Started with ZML</a> if you need more information on how to compile a model.</p><p><strong>Here's a quick recap:</strong></p><p>You can compile models for accelerator runtimes by appending one or more of the following arguments to the command line when compiling / running a model:</p><ul><li>NVIDIA CUDA: <code>--@zml//runtimes:cuda=true</code></li><li>AMD RoCM: <code>--@zml//runtimes:rocm=true</code></li><li>Google TPU: <code>--@zml//runtimes:tpu=true</code></li><li>AWS Trainium/Inferentia 2: <code>--@zml//runtimes:neuron=true</code></li><li><strong>AVOID CPU:</strong> <code>--@zml//runtimes:cpu=false</code></li></ul><p>So, to run the Llama model from above <strong>on your development machine</strong> housing an NVIDIA GPU, run the following:</p><pre><code>cd examples
+bazel run --config=release //llama --@zml//runtimes:cuda=true -- --hf-model-path=$HOME/Llama-3.2-1B-Instruct
+</code></pre><h2 id="cross-compiling-and-creating-a-tar-for-your-server">Cross-Compiling and creating a TAR for your server</h2><p>Currently, ZML lets you cross-compile to one of the following target architectures:</p><ul><li>Linux X86_64: <code>--platforms=@zml//platforms:linux_amd64</code></li><li>Linux ARM64: <code>--platforms=@zml//platforms:linux_arm64</code></li><li>MacOS ARM64: <code>--platforms=@zml//platforms:macos_arm64</code></li></ul><p>As an example, here is how you build above Llama for CUDA on Linux X86_64:</p><pre><code>cd examples
+bazel build --config=release //llama          \
+    --@zml//runtimes:cuda=true                \
+    --@zml//runtimes:cpu=false                \
+    --platforms=@zml//platforms:linux_amd64
 </code></pre><h3 id="creating-the-tar">Creating the TAR</h3><p>When cross-compiling, it is convenient to produce a compressed TAR file that you can copy to the target host, so you can unpack it there and run the model.</p><p>Let's use MNIST as example.</p><p>If not present already, add an "archive" target to the model's <code>BUILD.bazel</code>, like this:</p><pre><code class="python"><span class="function">load</span>(<span class="string">&quot;@aspect_bazel_lib//lib:tar.bzl&quot;</span>, <span class="string">&quot;mtree_spec&quot;</span>, <span class="string">&quot;tar&quot;</span>)
 
 <span class="comment"># Manifest, required for building the tar archive</span>
@@ -179,7 +179,7 @@ bazel build -c opt //llama:OpenLLaMA-3B               \
 )
 </code></pre>
 <p>... and then build the TAR archive:</p><pre><code># cd examples
-bazel build -c opt //mnist:archive                    \
+bazel build --config=release //mnist:archive                    \
             --@zml//runtimes:cuda=true                \
             --@zml//runtimes:cpu=false                \
             --platforms=@zml//platforms:linux_amd64
