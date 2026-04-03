@@ -14,16 +14,15 @@ jobs:
     steps:
       # Checkout the main repository
       - name: Checkout this repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: master
 
       # Checkout the ZML repository into a separate folder
       - name: Checkout ZML repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           repository: zml/zml
-          token: ${{ secrets.ORG_PAT }}
           path: zml
           ref: master
 
@@ -44,7 +43,7 @@ jobs:
 
       # Checkout the docs branch
       - name: Checkout the docs branch
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: docs  # The branch that will hold the generated GitHub Pages content
           path: gh-pages  # Work in a separate directory to avoid conflicts
