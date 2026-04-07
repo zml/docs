@@ -151,16 +151,16 @@
   });
   </script>
   <!-- <h1 :text="$page.title"></h1> -->
-  <div id="docs"><h1 id="containerize-a-model">Containerize a Model</h1><p>A convenient way of <a href="/howtos/deploy_on_server/">deploying a model</a> is packaging it up in a Docker container. Thanks to bazel, this is really easy to do. You just have to append a few lines to your model's <code>BUILD.bazel</code>. Here is how it's done.</p><p><strong>Note:</strong> This walkthrough will work with your installed container runtime, no matter if it's <strong>Docker or e.g. Podman.</strong>  Also, we'll create images in the <a href="https://github.com/opencontainers/image-spec" target="_blank">OCI</a> open image format.</p><p>Let's try containerizing our <a href="/tutorials/write_first_model/">first model</a>, as it doesn't need any additional weights files. We'll see <a href="#adding-weights-and-data">down below</a> how to add those. We'll also see how to add GPU/TPU support for our container there.</p><p>Bazel creates images from <code>.TAR</code> archives.</p><p>The steps required for containerization are:</p><ol><li>Let bazel create a MANIFEST for the tar file to come.</li><li>Let bazel create a TAR archive of everything needed for the model to run.<ul><li>see also: <a href="/howtos/deploy_on_server/">Deploying Models on a Server</a>, where we prepare a TAR file, and copy it to and run it on a remote GPU server.</li></ul></li><li>Let bazel create a container image for Linux X86_64.</li><li>Let bazel load the image <em>(OPTIONAL)</em>.</li><li>Let bazel push the image straight to the Docker registry.</li><li>Let bazel <a href="#adding-weights-and-data">add weights and data</a>, GPU/TPU support <em>(OPTIONAL)</em>.</li></ol><p><strong>Note:</strong> every TAR archive we create (one in this example) becomes its own layer in the container image.</p><h2 id="dockerizing-our-first-model">Dockerizing our first model</h2><p>We need to add a few "imports" at the beginning of our <code>BUILD.bazel</code> so we can use their rules to define our 5 additional targets:</p><pre><code class="python"><span class="function">load</span>(<span class="string">&quot;@aspect_bazel_lib//lib:tar.bzl&quot;</span>, <span class="string">&quot;mtree_spec&quot;</span>, <span class="string">&quot;tar&quot;</span>)
-<span class="function">load</span>(<span class="string">&quot;@aspect_bazel_lib//lib:transitions.bzl&quot;</span>, <span class="string">&quot;platform_transition_filegroup&quot;</span>)
+  <div id="docs"><h1 id="containerize-a-model">Containerize a Model</h1><p>A convenient way of <a href="/howtos/deploy_on_server/">deploying a model</a> is packaging it up in a Docker container. Thanks to bazel, this is really easy to do. You just have to append a few lines to your model's <code>BUILD.bazel</code>. Here is how it's done.</p><p><strong>Note:</strong> This walkthrough will work with your installed container runtime, no matter if it's <strong>Docker or e.g. Podman.</strong>  Also, we'll create images in the <a href="https://github.com/opencontainers/image-spec" target="_blank">OCI</a> open image format.</p><p>Let's try containerizing our <a href="/tutorials/write_first_model/">first model</a>, as it doesn't need any additional weights files. We'll see <a href="#adding-weights-and-data">down below</a> how to add those. We'll also see how to add GPU/TPU support for our container there.</p><p>Bazel creates images from <code>.TAR</code> archives.</p><p>The steps required for containerization are:</p><ol><li>Let bazel create a MANIFEST for the tar file to come.</li><li>Let bazel create a TAR archive of everything needed for the model to run.<ul><li>see also: <a href="/howtos/deploy_on_server/">Deploying Models on a Server</a>, where we prepare a TAR file, and copy it to and run it on a remote GPU server.</li></ul></li><li>Let bazel create a container image for Linux X86_64.</li><li>Let bazel load the image <em>(OPTIONAL)</em>.</li><li>Let bazel push the image straight to the Docker registry.</li><li>Let bazel <a href="#adding-weights-and-data">add weights and data</a>, GPU/TPU support <em>(OPTIONAL)</em>.</li></ol><p><strong>Note:</strong> every TAR archive we create (one in this example) becomes its own layer in the container image.</p><h2 id="dockerizing-our-first-model">Dockerizing our first model</h2><p>We need to add a few "imports" at the beginning of our <code>BUILD.bazel</code> so we can use their rules to define our 5 additional targets:</p><pre><code class="python"><span class="function">load</span>(<span class="string">&quot;@bazel_lib//lib:transitions.bzl&quot;</span>, <span class="string">&quot;platform_transition_filegroup&quot;</span>)
 <span class="function">load</span>(<span class="string">&quot;@rules_oci//oci:defs.bzl&quot;</span>, <span class="string">&quot;oci_image&quot;</span>, <span class="string">&quot;oci_load&quot;</span>, <span class="string">&quot;oci_push&quot;</span>)
-<span class="function">load</span>(<span class="string">&quot;@zml//bazel:zig.bzl&quot;</span>, <span class="string">&quot;zig_cc_binary&quot;</span>)
+<span class="function">load</span>(<span class="string">&quot;@rules_zig//zig:defs.bzl&quot;</span>, <span class="string">&quot;zig_binary&quot;</span>)
+<span class="function">load</span>(<span class="string">&quot;@tar.bzl//tar:mtree.bzl&quot;</span>, <span class="string">&quot;mtree_spec&quot;</span>)
+<span class="function">load</span>(<span class="string">&quot;@tar.bzl//tar:tar.bzl&quot;</span>, <span class="string">&quot;tar&quot;</span>)
 
-<span class="function">zig_cc_binary</span>(
+<span class="function">zig_binary</span>(
     <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;simple_layer&quot;</span>,
     <span class="variable">main</span> <span class="operator">=</span> <span class="string">&quot;main.zig&quot;</span>,
     <span class="variable">deps</span> <span class="operator">=</span> [
-        <span class="string">&quot;@zml//async&quot;</span>,
         <span class="string">&quot;@zml//zml&quot;</span>,
     ],
 )
@@ -198,14 +198,13 @@
     <span class="variable">target_platform</span> <span class="operator">=</span> <span class="string">&quot;@zml//platforms:linux_amd64&quot;</span>,
 )
 </code></pre>
-<p>And that's almost it! You can already build the image:</p><pre><code># cd examples
-bazel build --config=release //simple_layer:image
+<p>And that's almost it! You can already build the image:</p><pre><code>bazel build --config=release //examples/simple_layer:image
 
-INFO: Analyzed target //simple_layer:image (1 packages loaded, 8 targets configured).
+INFO: Analyzed target //examples/simple_layer:image (0 packages loaded, 0 targets configured).
 INFO: Found 1 target...
-Target //simple_layer:image up-to-date:
-  bazel-out/k8-dbg-ST-f832ad0148ae/bin/simple_layer/image_
-INFO: Elapsed time: 0.279s, Critical Path: 0.00s
+Target //examples/simple_layer:image up-to-date:
+  bazel-out/linux_amd64-opt/bin/examples/simple_layer/image_
+INFO: Elapsed time: 0.285s, Critical Path: 0.00s
 INFO: 1 process: 1 internal.
 INFO: Build completed successfully, 1 total action
 </code></pre><p>... and inspect <code>./bazel-out</code>. Bazel tells you the exact path to the <code>image_</code>.</p><h3 id="4--the-load">4. The Load</h3><p>While inspecting the image is surely interesting, we usually want to load the image so we can run it.</p><p>There is a bazel rule for that: <code>oci_load</code>. When we append the following lines to <code>BUILD.bazel</code>:</p><pre><code class="python"><span class="comment"># Load will immediately load the image (eg: docker load)</span>
@@ -217,7 +216,7 @@ INFO: Build completed successfully, 1 total action
     ],
 )
 </code></pre>
-<p>... then we can load the image and run it with the following commands:</p><pre><code>bazel run --config=release //simple_layer:load
+<p>... then we can load the image and run it with the following commands:</p><pre><code>bazel run --config=release //examples/simple_layer:load
 docker run --rm distroless/simple_layer:latest
 </code></pre><h3 id="5--the-push">5. The Push</h3><p>We just need to add one more target to the build file before we can push the image to a container registry:</p><pre><code class="python"><span class="comment"># Bazel target for pushing the Linux image to the docker registry</span>
 <span class="function">oci_push</span>(
@@ -228,29 +227,30 @@ docker run --rm distroless/simple_layer:latest
     <span class="variable">repository</span> <span class="operator">=</span> <span class="string">&quot;index.docker.io/renerocksai/simple_layer&quot;</span>,
 )
 </code></pre>
-<p>This will push the <code>simple_layer</code> image with the tag <code>latest</code> (you can add more) to the docker registry:</p><pre><code>bazel run --config=release //simple_layer:push
-</code></pre><p>When dealing with maybe a public and a private container registry - or if you just want to try it out <strong>right now</strong>, you can always override the repository on the command line:</p><pre><code>bazel run --config=release //simple_layer:push -- --repository my.server.com/org/image
-</code></pre><h2 id="adding-weights-and-data">Adding weights and data</h2><p>Dockerizing a model that doesn't need any weights was easy. But what if you want to create a complete care-free package of a model plus all required weights and supporting files?</p><p>We'll use the <a href="https://github.com/zml/zml/tree/master/examples/mnist" target="_blank">MNIST example</a> to illustrate how to build Docker images that also contain data files.</p><p>You can <code>bazel run --config=release //mnist:push -- --repository index.docker.io/my_org/zml_mnist</code> in the <code>./examples</code> folder if you want to try it out.</p><p><strong>Note: Please add one more of the following parameters to specify all the platforms your containerized model should support.</strong></p><ul><li>NVIDIA CUDA: <code>--@zml//runtimes:cuda=true</code></li><li>AMD RoCM: <code>--@zml//runtimes:rocm=true</code></li><li>Google TPU: <code>--@zml//runtimes:tpu=true</code></li><li>AWS Trainium/Inferentia 2: <code>--@zml//runtimes:neuron=true</code></li><li><strong>AVOID CPU:</strong> <code>--@zml//runtimes:cpu=false</code></li></ul><p><strong>Example:</strong></p><pre><code>bazel run //mnist:push --config=release --@zml//runtimes:cuda=true -- --repository index.docker.io/my_org/zml_mnist
-</code></pre><h3 id="manifest-and-archive">Manifest and Archive</h3><p>We only add one more target to the <code>BUILD.bazel</code> to construct the commandline for the <code>entrypoint</code> of the container. All other steps basically remain the same.</p><p>Let's start with creating the manifest and archive:</p><pre><code class="python"><span class="function">load</span>(<span class="string">&quot;@aspect_bazel_lib//lib:expand_template.bzl&quot;</span>, <span class="string">&quot;expand_template&quot;</span>)
-<span class="function">load</span>(<span class="string">&quot;@aspect_bazel_lib//lib:tar.bzl&quot;</span>, <span class="string">&quot;mtree_spec&quot;</span>, <span class="string">&quot;tar&quot;</span>)
-<span class="function">load</span>(<span class="string">&quot;@aspect_bazel_lib//lib:transitions.bzl&quot;</span>, <span class="string">&quot;platform_transition_filegroup&quot;</span>)
+<p>This will push the <code>simple_layer</code> image with the tag <code>latest</code> (you can add more) to the docker registry:</p><pre><code>bazel run --config=release //examples/simple_layer:push
+</code></pre><p>When dealing with maybe a public and a private container registry - or if you just want to try it out <strong>right now</strong>, you can always override the repository on the command line:</p><pre><code>bazel run --config=release //examples/simple_layer:push -- --repository my.server.com/org/image
+</code></pre><h2 id="adding-weights-and-data">Adding weights and data</h2><p>Dockerizing a model that doesn't need any weights was easy. But what if you want to create a complete care-free package of a model plus all required weights and supporting files?</p><p>We'll use the <a href="https://github.com/zml/zml/tree/master/examples/mnist" target="_blank">MNIST example</a> to illustrate how to build Docker images that also contain data files.</p><p>You can <code>bazel run --config=release //examples/mnist:push -- --repository index.docker.io/my_org/zml_mnist</code> if you want to try it out.</p><p><strong>Note: Please add one more of the following parameters to specify all the platforms your containerized model should support.</strong></p><ul><li>NVIDIA CUDA: <code>--@zml//platforms:cuda=true</code></li><li>AMD RoCM: <code>--@zml//platforms:rocm=true</code></li><li>Google TPU: <code>--@zml//platforms:tpu=true</code></li><li>AWS Trainium/Inferentia 2: <code>--@zml//platforms:neuron=true</code></li><li><strong>AVOID CPU:</strong> <code>--@zml//platforms:cpu=false</code></li></ul><p><strong>Example:</strong></p><pre><code>bazel run //examples/mnist:push --config=release --@zml//platforms:cuda=true -- --repository index.docker.io/my_org/zml_mnist
+</code></pre><h3 id="manifest-and-archive">Manifest and Archive</h3><p>We only add one more target to the <code>BUILD.bazel</code> to construct the commandline for the <code>entrypoint</code> of the container. All other steps basically remain the same.</p><p>Let's start with creating the manifest and archive:</p><pre><code class="python"><span class="function">load</span>(<span class="string">&quot;@bazel_lib//lib:transitions.bzl&quot;</span>, <span class="string">&quot;platform_transition_filegroup&quot;</span>)
 <span class="function">load</span>(<span class="string">&quot;@rules_oci//oci:defs.bzl&quot;</span>, <span class="string">&quot;oci_image&quot;</span>, <span class="string">&quot;oci_load&quot;</span>, <span class="string">&quot;oci_push&quot;</span>)
-<span class="function">load</span>(<span class="string">&quot;@zml//bazel:zig.bzl&quot;</span>, <span class="string">&quot;zig_cc_binary&quot;</span>)
+<span class="function">load</span>(<span class="string">&quot;@rules_zig//zig:defs.bzl&quot;</span>, <span class="string">&quot;zig_binary&quot;</span>)
+<span class="function">load</span>(<span class="string">&quot;@tar.bzl//tar:mtree.bzl&quot;</span>, <span class="string">&quot;mtree_spec&quot;</span>)
+<span class="function">load</span>(<span class="string">&quot;@tar.bzl//tar:tar.bzl&quot;</span>, <span class="string">&quot;tar&quot;</span>)
 
 <span class="comment"># The executable</span>
-<span class="function">zig_cc_binary</span>(
+<span class="function">zig_binary</span>(
     <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;mnist&quot;</span>,
     <span class="variable">args</span> <span class="operator">=</span> [
-        <span class="string">&quot;$(location @com_github_ggerganov_ggml_mnist//file)&quot;</span>,
-        <span class="string">&quot;$(location @com_github_ggerganov_ggml_mnist_data//file)&quot;</span>,
+        <span class="string">&quot;$(location @mnist//:mnist.safetensors)&quot;</span>,
+        <span class="string">&quot;$(location @mnist//:t10k-images.idx3-ubyte)&quot;</span>,
     ],
     <span class="variable">data</span> <span class="operator">=</span> [
-        <span class="string">&quot;@com_github_ggerganov_ggml_mnist//file&quot;</span>,
-        <span class="string">&quot;@com_github_ggerganov_ggml_mnist_data//file&quot;</span>,
+        <span class="string">&quot;@mnist//:mnist.safetensors&quot;</span>,
+        <span class="string">&quot;@mnist//:t10k-images.idx3-ubyte&quot;</span>,
     ],
     <span class="variable">main</span> <span class="operator">=</span> <span class="string">&quot;mnist.zig&quot;</span>,
+    <span class="variable">visibility</span> <span class="operator">=</span> [<span class="string">&quot;//visibility:public&quot;</span>],
     <span class="variable">deps</span> <span class="operator">=</span> [
-        <span class="string">&quot;@zml//async&quot;</span>,
+        <span class="string">&quot;@zml//bazel&quot;</span>,
         <span class="string">&quot;@zml//zml&quot;</span>,
     ],
 )
@@ -273,22 +273,24 @@ docker run --rm distroless/simple_layer:latest
     <span class="variable">mtree</span> <span class="operator">=</span> <span class="string">&quot;:mtree&quot;</span>,
 )
 </code></pre>
-<h3 id="entrypoint">Entrypoint</h3><p>Our container entrypoint commandline is not just the name of the executable anymore, as we need to pass the weights file and the test dataset to MNIST. A simple string interpolation will not be enough.</p><p>For this reason, we use the <code>expand_template</code> rule, like this:</p><pre><code class="python"><span class="comment"># A convenience template for creating the &quot;command line&quot; for the entrypoint</span>
+<h3 id="entrypoint">Entrypoint</h3><p>Our container entrypoint commandline is not just the name of the executable anymore, as we need to pass the weights file and the test dataset to MNIST. A simple string interpolation will not be enough.</p><p>For this reason, we use the <code>expand_template</code> rule, like this:</p><pre><code class="python"><span class="function">load</span>(<span class="string">&quot;@bazel_lib//lib:expand_template.bzl&quot;</span>, <span class="string">&quot;expand_template&quot;</span>)
+
+<span class="comment"># A convenience template for creating the &quot;command line&quot; for the entrypoint</span>
 <span class="function">expand_template</span>(
     <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;entrypoint&quot;</span>,
     <span class="variable">data</span> <span class="operator">=</span> [
         <span class="string">&quot;:mnist&quot;</span>,
-        <span class="string">&quot;@com_github_ggerganov_ggml_mnist//file&quot;</span>,
-        <span class="string">&quot;@com_github_ggerganov_ggml_mnist_data//file&quot;</span>,
+        <span class="string">&quot;@mnist//:mnist.safetensors&quot;</span>,
+        <span class="string">&quot;@mnist//:t10k-images.idx3-ubyte&quot;</span>,
     ],
     <span class="variable">substitutions</span> <span class="operator">=</span> {
-        <span class="string">&quot;:model&quot;</span>: <span class="string">&quot;$(rlocationpath @com_github_ggerganov_ggml_mnist//file)&quot;</span>,
-        <span class="string">&quot;:data&quot;</span>: <span class="string">&quot;$(rlocationpath @com_github_ggerganov_ggml_mnist_data//file)&quot;</span>,
+        <span class="string">&quot;:model&quot;</span>: <span class="string">&quot;$(rlocationpath @mnist//:mnist.safetensors)&quot;</span>,
+        <span class="string">&quot;:data&quot;</span>: <span class="string">&quot;$(rlocationpath @mnist//:t10k-images.idx3-ubyte)&quot;</span>,
     },
     <span class="variable">template</span> <span class="operator">=</span> [
         <span class="string">&quot;./{}/mnist&quot;</span>.<span class="function method">format</span>(<span class="function">package_name</span>()),
-        <span class="string">&quot;./{}/mnist.runfiles/:model&quot;</span>.<span class="function method">format</span>(<span class="function">package_name</span>()),
-        <span class="string">&quot;./{}/mnist.runfiles/:data&quot;</span>.<span class="function method">format</span>(<span class="function">package_name</span>()),
+        <span class="string">&quot;/{}/mnist.runfiles/:model&quot;</span>.<span class="function method">format</span>(<span class="function">package_name</span>()),
+        <span class="string">&quot;/{}/mnist.runfiles/:data&quot;</span>.<span class="function method">format</span>(<span class="function">package_name</span>()),
     ],
 )
 </code></pre>
@@ -327,7 +329,7 @@ docker run --rm distroless/simple_layer:latest
     <span class="variable">repository</span> <span class="operator">=</span> <span class="string">&quot;index.docker.io/steeve/mnist&quot;</span>,
 )
 </code></pre>
-<p>And that's it! With one simple bazel command, you can push a neatly packaged MNIST model, including weights and dataset, to the docker registry:</p><pre><code>bazel run //mnist:push --@zml//runtimes:cuda=true -- --repository index.docker.io/my_org/zml_mnist
+<p>And that's it! With one simple bazel command, you can push a neatly packaged MNIST model, including weights and dataset, to the docker registry:</p><pre><code>bazel run //examples/mnist:push --@zml//platforms:cuda=true -- --repository index.docker.io/my_org/zml_mnist
 </code></pre></div>
 </div>
     </main>
